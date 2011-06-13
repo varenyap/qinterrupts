@@ -1,0 +1,38 @@
+
+-- Part 1
+SELECT sym, MAX(price) - MIN(price) as maxjump
+FROM quotes
+GROUP BY sym
+ORDER BY maxjump DESC
+
+--- 1 week
+"MSFT";990
+"ORCL";867
+"IBM";755
+
+-- 2 weeks
+"IBM";1195
+"MSFT";990
+"ORCL";867
+
+
+-- Part 2
+
+--Need to add in the last line of the quotes.
+SELECT Q1.sym, Q1.day, Q1.price - Q2.price as dayjump
+FROM quotes as Q1, quotes as Q2
+WHERE Q1.sym = 'IBM' and Q2.sym = 'IBM' and Q1.day = Q2.day -1
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------
+-- required queries
+-- Query to find the max jump for each stock.
+SELECT sym, MAX(price) - MIN(price) as maxjump
+FROM quotes
+GROUP BY sym
+ORDER BY maxjump DESC
+

@@ -1,0 +1,12 @@
+import os.path
+
+basepath = os.path.dirname(__file__)
+
+
+
+#Path to SQL script
+init_script_path = os.path.abspath(os.path.join(basepath, "..", "..", "qinterrupts/src/script.sql"))
+
+db_name = "tester"
+db_user = "varenyaprasad"
+db_password = "postgres"
