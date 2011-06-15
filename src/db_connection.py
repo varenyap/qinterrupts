@@ -86,19 +86,61 @@ class Db_connection:
         self.closeConnection(self.conn,self.cursor)
         return result
     
+    def list_tables(self):
+        query = ("SELECT tablename"
+             " FROM pg_tables"
+             " WHERE tablename !~* 'pg_*' AND tablename !~* 'sql_*'")
+        
+        return self.allrows(query)
+    
+    def list_table_attributes(self, table_name):
+        
+        query = ("SELECT a.attname AS Column, t.typname AS Type"
+             " FROM pg_class c, pg_attribute a, pg_type t"
+             " WHERE c.relname = '%s'"
+                " AND a.attnum > 0"
+                " AND a.attrelid = c.oid"
+                " AND a.atttypid = t.oid"
+                " ORDER BY a.attnum;" %table_name)
+        
+        return self.allrows(query)
+    
+    def display_schema(self):
+        print 'The Schema is:'  
+        
+        tables = self.list_tables()
+        for table in tables:
+            print"\n-----------------------------------------------------"
+            print"Table: %s" %table
+            
+            attributes =  self.list_table_attributes(table)
+            for attribute in attributes:
+                print "%s (%s)" %(attribute[0],attribute[1])
+            
+        
+        
+        
+        
+             
 def main():
     dbobj = Db_connection()
+    dbobj.display_schema()
+#    print dbobj.list_tables()
+#    print dbobj.list_table_attributes('quotes')
+#    print dbobj.list_table_attributes('q_orcl')
+
     
-    dbobj.clear_database()
-#    query = "SELECT * FROM quotes;"
-##    dbobj.make_pquery(query)
+#    query = ("SELECT a.attname AS Column, t.typname AS Type"
+#             " FROM pg_class c, pg_attribute a, pg_type t"
+#             " WHERE c.relname = 'quotes'"
+#                " AND a.attnum > 0"
+#                " AND a.attrelid = c.oid"
+#                " AND a.atttypid = t.oid"
+#                " ORDER BY a.attnum;")
 #    
-#    db_data = dbobj.allrows(query)
-##    print db_data
-#    
-#    query2 = "SELECT Q1.sym, Q1.day, Q1.price - Q2.price as dayjump INTO Q_IBM FROM quotes as Q1, quotes as Q2 WHERE Q1.sym = 'IBM' and Q2.sym = 'IBM' and Q1.day = Q2.day -1"
-##    query2 = "INSERT INTO users(uid, uname, pwd) VALUES (4,'natesaprasad', 'dodo');"
-#    result = dbobj.make_pquery(query2)
+#    dbobj.make_pquery(query)
+    
+
     
 if __name__ == "__main__":
     main()
