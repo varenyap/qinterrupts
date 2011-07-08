@@ -68,6 +68,7 @@ class Db_connection:
         self.openConnection()
         (self.cursor).execute(query)
         (self.conn).commit()    
+#        print query
         self.closeConnection(self.conn,self.cursor)
 
     # Use when the first result of the query is needed.
@@ -116,10 +117,6 @@ class Db_connection:
             attributes =  self.list_table_attributes(table)
             for attribute in attributes:
                 print "%s (%s)" %(attribute[0],attribute[1])
-            
-        
-        
-        
         
              
 def main():

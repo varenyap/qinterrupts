@@ -1,4 +1,5 @@
 import sqlparse
+import os
 import db_connection
 
 db = db_connection.Db_connection()
@@ -6,6 +7,8 @@ db = db_connection.Db_connection()
 def parse_sql_as_list (sql):
     if (sql is None or len (sql) == 0):
         return None
+    sql = sqlparse.format(sql, reindent=True, keyword_case='upper')
+
     parsedQuery = sqlparse.lexer.tokenize (sql)
     # Convert the parsed query to a list
     parsedList = []
@@ -137,8 +140,9 @@ def find_tables (sql):
         i = 0
         for attr in attr_list:
             if (len (attr_list) > i+1):
-                tableMap [attr_list[i]] =  attr_list[i+1]
+                tableMap [attr_list[i+1]] = attr_list[i]
             i +=2
+
         return tableMap
     else:
         return False
@@ -153,11 +157,11 @@ def find_distinct_group_by_values (queryTables, grpByCols):
             table = getTableNameForAlias (queryTables, alias)
             if (table is None):
                 continue
-            tblCol = str(table)+'.'+str(column)
+            tblCol = str(alias)+'.'+str(column)
             query = 'SELECT DISTINCT '+ column + ' FROM '+ str(table)
             results = get_query_result_as_list (query)
             distinctResults [tblCol] = results
-        return  distinctResults
+        return distinctResults
 
 
 def find_select_columns (sql):
@@ -186,7 +190,7 @@ def find_select_columns (sql):
                     attr_list = attr_list + str(parsedList[i][1])
                     i+=1
                 elif (str(parsedList [i][0]) == 'Token.Keyword' and str(parsedList [i][1]) in aggregateKeywords):
-                    attr_list = attr_list + str(parsedList[i+1][1])
+                    attr_list = attr_list + str(parsedList [i][1])+str(parsedList[i+1][1])
                     i+=1
                 else:
                     foundAttr = True
@@ -204,9 +208,8 @@ def find_select_columns (sql):
 # Todo - implement the db call
 def get_query_result_as_list(query):
     if (query is not None):
-        results = []        
-        results = db.allrows(query) 
-        #make the db call, populate the results list. Return None if there are no results or some sillyness happens
+        #results = ['COSI','MATH','HIST']
+        results = db.allrows(query)
         return results
     else:
         return None
@@ -216,18 +219,108 @@ def getTableNameForAlias (queryTables, tblAlias):
         return None
     tblAlias = tblAlias.strip()
     if (queryTables and len(tblAlias) > 0):
-        for table in queryTables.iterkeys():
-            if (str(queryTables[table]) == str(tblAlias)):
-                return str(table)
+        for alias in queryTables.iterkeys():
+            if (alias == str(tblAlias)):
+                return str(queryTables[alias])
     return None
-    
 
-#def constructSubSelects (selAttributes, distinctQueris, tblsInQry):
-#    if (selAttributes and distinctQueris and tblsInQry):
+def isAggregate (attr):
+    aggregateKeywords = ["SUM","MIN","MAX","AVG"]
+    if (attr is not None):
+        attr = str(attr).strip()
+        for keyWord in aggregateKeywords:
+            if (keyWord in attr):
+                return True
+    return False
+
+def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry):
+    if (selAttributes and distinctGrouupVals and tblsInQry):
+        queryTemptblMap = {}
+        selColumns = ''
+        containAggregate = False
         
+        for selAtt in selAttributes:
+            if (isAggregate(selAtt)) :
+                containAggregate = True
+                selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+','
+        
+        if (not containAggregate):
+            for selAtt in selAttributes:
+                selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+','
+        
+        selColumns = selColumns.rstrip(",")
+        selectClause = 'SELECT '+ str(selColumns)
+        fromClause = ' FROM '
+        
+        for alias in tblsInQry.iterkeys():
+            table = tblsInQry[alias]
+            fromClause = fromClause + table+ ' '+ alias + ','
+        fromClause = fromClause.rstrip(",")
+        
+        # Colletct queries with in to part
+        qlist = []
+        for val in distinctGrouupVals.iterkeys():
+            tempDistVals = distinctGrouupVals[val]
+            for distVal in tempDistVals:
+                whereClaus = ' WHERE '+ str(val)+ '=' + "'"+str(distVal[0])+"'"
+                tempTblName = str(val)+"_"+str(distVal[0])
+                tempTblName = tempTblName.replace('.','_')
+
+                if (containAggregate):
+                    query = selectClause+ ",'"+ str(distVal[0]) +"'"+' INTO '+ str(tempTblName) + str(fromClause) + str(whereClaus)
+                else:
+                    query = selectClause+' INTO '+ str(tempTblName) + str(fromClause) + str(whereClaus)
+                
+                qlist.append(query)
+                
+                # construct the query without in to part to persist which temp table contains which query result
+                if (containAggregate):
+                    query = selectClause + ",'"+str(distVal[0])+"'" + fromClause + whereClaus
+                    queryTemptblMap [tempTblName] = query
+                else:
+                    query = selectClause + fromClause + whereClaus
+                    queryTemptblMap [tempTblName] = query
+        
+        retVal = []
+        retVal.append(queryTemptblMap)
+        retVal.append(qlist)        
+        return retVal
+
+def constructBigQueryResult (subSelects):
+    if (subSelects):
+        dictSS = subSelects [0]
+        if (dictSS):
+            bigQuery = ''
+            union = " UNION "
+            for subSelect in dictSS.iterkeys(): 
+              bigQuery += "SELECT * FROM "+ subSelect+ union
+            bigQuery = bigQuery[:-5]
+            writeToFile (subSelects[1],bigQuery)
+
+#Function: writeToFile
+#Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
+def writeToFile (subSelects,bigQuery):
+    filename = "scripts.py"
+    FILE = open(filename,"w")
+    if (not subSelects or len (bigQuery) == 0):
+        FILE.write('Unknown problem with queries')
+    else:   
+        FILE.write('import db_connection\n\n')
+        FILE.write('db = db_connection.Db_connection()\n\n')
+        FILE.write('db.clear_database() # reset the database on each run.\n\n')
+        FILE.write('# Make a db call and run the sub queries that will collectively evaluate to the main query result\n')
+        for subSelect in subSelects:
+            FILE.write('db.make_query('+subSelect+')\n')
+        
+        
+        FILE.write('\n# The query that combines the results of small queries\n')
+        FILE.write('bigQuery = '+bigQuery+'\n\n')
+        FILE.write('db.allrows(bigQuery)\n')
+    FILE.close()
                 
 def main():
-    db.clear_database() # reset the database on each run.
+    
+    #db.clear_database() # reset the database on each run. 
     
     query1 = ("SELECT d.name, AVG (e.salary) "
               " FROM employee e, department d "
@@ -238,24 +331,27 @@ def main():
     grpByCols = find_groupby_clause(query1)
     
     # 2. split the group by attributes to table alias and column name
-    attributes = find_attr_clause(grpByCols,",") # List of tuples t[0] = table alias t[1] = column name 
+    attributes = find_attr_clause(grpByCols,",") # List of tuples t[0] = table alias t[1] = column name
     
     # 3. find all the tables in the query
-    tblsInQry = find_tables (query1) # A dictionary of table names and aliases - key table name, value alias
+    tblsInQry = find_tables (query1) # A dictionary of table names and aliases - key alias, value table name
     
     # 4. construct the list of distinct values for the attributes in group by clause
-    distinctQueris = find_distinct_group_by_values (tblsInQry,attributes) # dictionary with tableAlias.colums as key and a list of distinct values for that column
+    distinctGrouupVals = find_distinct_group_by_values (tblsInQry,attributes) # dictionary with tableAlias.colums as key and a list of distinct values for that column
     
     # 5. find the columns in the select clause
     selectCols = find_select_columns (query1)
     
     # 6. split the select attributes to table alias and column name
-    selAttributes = find_attr_clause(selectCols,",") # List of tuples t[0] = table alias t[1] = column name 
+    selAttributes = find_attr_clause(selectCols,",") # List of tuples t[0] = table alias t[1] = column name
     
-    print selAttributes
+    # 7. construct the sub selects for each distinct value represented in the group by clause
+    subSelects = constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry) # dictionary having the temp table as key and the query for that table as value
     
-    
-    
+    # 8. Union the small queries to evaluate the big query
+    queryResults = constructBigQueryResult(subSelects)
+        
+    db.display_schema()
     
 if __name__ == "__main__":
     main()

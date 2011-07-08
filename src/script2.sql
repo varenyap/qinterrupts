@@ -1,10 +1,11 @@
+drop table if exists d_name_cosi cascade;
+drop table if exists d_name_hist cascade;
+drop table if exists d_name_math cascade;
 drop table if exists quotes cascade;
 drop table if exists department cascade;
 drop table if exists employee cascade;
-drop table if exists output cascade;
 create table department (id integer, name varchar(128));-- Table: department
 create table employee (id integer,dept_id integer, name varchar(128), salary integer);-- Table: department
-create table output(sym varchar(128), day integer, dayjump integer);-- Table: output
 INSERT INTO department(id,name) VALUES(1,'COSI');-- insert departments
 INSERT INTO department(id,name) VALUES(2,'HIST');
 INSERT INTO department(id,name) VALUES(3,'MATH');

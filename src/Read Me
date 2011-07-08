@@ -1,6 +1,6 @@
-9th June 2011
+23 June 2011
 
-To run test.py
+To run sqlparser.py
 
 1) Download and install the python module psycopg to interface with postgres.
  Found at http://www.initd.org/psycopg/install/
@@ -13,4 +13,4 @@ To run test.py
 	c) The name of the database
 	d) Password to access the db
 
-4) python test.py should run the file.
+4) python sqlparser.py should run the file.
