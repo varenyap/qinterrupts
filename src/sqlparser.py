@@ -1,5 +1,4 @@
 import sqlparse
-import os
 import db_connection
 
 db = db_connection.Db_connection()
@@ -207,6 +206,7 @@ def find_select_columns (sql):
 def get_query_result_as_list(query):
     if (query is not None):
         #results = ['COSI','MATH','HIST']
+#        print "Line 209: %s" %query
         results = db.allrows(query)
         return results
     else:
@@ -250,6 +250,7 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry):
         selectClause = 'SELECT '+ str(selColumns)
         fromClause = ' FROM '
         
+#        print "line 253 - select clause -  %s" %selectClause
         for alias in tblsInQry.iterkeys():
             table = tblsInQry[alias]
             fromClause = fromClause + table+ ' '+ alias + ','
@@ -270,7 +271,13 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry):
                     query = selectClause+' INTO '+ str(tempTblName) + str(fromClause) + str(whereClaus)
                 
                 qlist.append(query)
+#                print "line 273: %s" %query
+                #ALTER TABLE name_cosi ALTER COLUMN "?column?" TYPE varchar(120);
                 db.make_query(query)# make a db call and run the insert the query
+                if (containAggregate):
+                    alterQuery = "ALTER TABLE " + str(tempTblName) + """ ALTER COLUMN "?column?" TYPE VARCHAR(20); """
+                    db.make_query(alterQuery)
+                    qlist.append(alterQuery)
                 
                 # construct the query without in to part to persist which temp table contains which query result
                 if (containAggregate):
@@ -292,11 +299,13 @@ def constructBigQueryResult (subSelects):
             bigQuery = ''
             union = " UNION "
             for subSelect in dictSS.iterkeys():
-                bigQuery = "SELECT * FROM "+ subSelect
-                db.make_pquery(bigQuery)
-#                bigQuery += "SELECT * FROM "+ subSelect+ union
-#            bigQuery = bigQuery[:-5]
+                bigQuery += "SELECT * FROM "+ subSelect + union
+                
+            bigQuery = bigQuery[:-6]
+            db.make_pquery(bigQuery)
+            print "line 306: %s" %bigQuery
             writeToFile (subSelects[1],bigQuery)
+
 
 #Function: writeToFile
 #Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
@@ -316,7 +325,7 @@ def writeToFile (subSelects,bigQuery):
         
         FILE.write('\n# The query that combines the results of small queries\n')
         FILE.write('bigQuery = '+bigQuery+'\n\n')
-        FILE.write('db.allrows(bigQuery)\n')
+        FILE.write('db.make_pquery(bigQuery)\n')
     FILE.close()
                 
 def main():
@@ -352,7 +361,7 @@ def main():
     # 8. Union the small queries to evaluate the big query
     queryResults = constructBigQueryResult(subSelects)
         
-    db.display_schema()
+#    db.display_schema()
     
 if __name__ == "__main__":
     main()
