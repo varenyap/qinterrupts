@@ -203,9 +203,7 @@ def find_select_columns (sql):
         return attr_list
     else:
         return False
-    
 
-# Todo - implement the db call
 def get_query_result_as_list(query):
     if (query is not None):
         #results = ['COSI','MATH','HIST']
@@ -272,6 +270,7 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry):
                     query = selectClause+' INTO '+ str(tempTblName) + str(fromClause) + str(whereClaus)
                 
                 qlist.append(query)
+                db.make_query(query)# make a db call and run the insert the query
                 
                 # construct the query without in to part to persist which temp table contains which query result
                 if (containAggregate):
@@ -292,9 +291,11 @@ def constructBigQueryResult (subSelects):
         if (dictSS):
             bigQuery = ''
             union = " UNION "
-            for subSelect in dictSS.iterkeys(): 
-              bigQuery += "SELECT * FROM "+ subSelect+ union
-            bigQuery = bigQuery[:-5]
+            for subSelect in dictSS.iterkeys():
+                bigQuery = "SELECT * FROM "+ subSelect
+                db.make_pquery(bigQuery)
+#                bigQuery += "SELECT * FROM "+ subSelect+ union
+#            bigQuery = bigQuery[:-5]
             writeToFile (subSelects[1],bigQuery)
 
 #Function: writeToFile
@@ -320,7 +321,7 @@ def writeToFile (subSelects,bigQuery):
                 
 def main():
     
-    #db.clear_database() # reset the database on each run. 
+    db.clear_database() # reset the database on each run. 
     
     query1 = ("SELECT d.name, AVG (e.salary) "
               " FROM employee e, department d "
