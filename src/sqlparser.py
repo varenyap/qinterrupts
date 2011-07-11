@@ -1,6 +1,5 @@
 import sqlparse
 import db_connection
-import re
 
 db = db_connection.Db_connection()
 
@@ -95,95 +94,77 @@ def find_where_clause(parsedList):
         print "Error: Couldn't find where clause in query"
         return False
 
+#Comment: How to handle 'BETWEEN pred AND pred'?
+#Given a clause, it returns a list of attributes and logical operators in order of appearance.
 def split_logical_operators(clause):
     if (clause is None):
         return False
     clause = clause.upper()
-    #WHERE e.dept_id = d.id and e.dept_od = f.piece or d.dept_id = 89
+
     attr_list = []
     foundOr = -1
     foundNot = -1
-    foundAnd = -1
-    
     numAnd = clause.count(" AND ")
     numOr = clause.count(" OR ")
     numNot = clause.count(" NOT ")
     
     and_split = clause.split(' AND ')
-    print "---------------My and_split is :"
-    print and_split
-    print "End of and_split----------------"
-    
-    if (len(and_split) > 1):
-        foundAnd = 1
-    
     if (len(and_split) > 0):
-        for asplit in and_split:
+        for asplit in and_split: # Go through each of the attribute split over the AND operator
             asplit = asplit.strip()
-            print "#### Asplit: %s ####" % asplit
+
+            #Update loop variables to see if logical operators exist in the split portion
             foundOr = asplit.find(" OR ")
             foundNot = asplit.find(" NOT ")
             
-            if (foundOr is -1 and foundNot is - 1):
+            if (foundOr is -1 and foundNot is - 1):#The attribute has no logical operators
                 attr_list.append(asplit)
             else:            
                 while(foundOr is not -1 or foundNot is not - 1):#while((foundOr or foundNot) is not - 1):
-                    if (foundOr is not - 1):
-                        print "I found an OR in the asplit"
+                    if (foundOr is not - 1): #Has an OR logical operator
                         or_split = asplit.split(" OR ")
                         if (len(or_split) > 0):
                             for osplit in or_split:
                                 osplit = osplit.strip()
-                                print "#### Osplit: %s ####" % osplit
+
+                                #Update loop variables
                                 foundNot = osplit.find(" NOT ")
                                 foundOr = osplit.find(" OR ")
                                 
-                                if (foundNot is - 1):
-                                    print "I didnt find a not"
+                                if (foundNot is - 1): # No more NOT logical operators
                                     attr_list.append(osplit)
                                 else:
-                                    print "I found a not"
                                     while (foundNot is not - 1):
-                                        not_split = osplit.split(" NOT ")
-                                        
-                                        for nsplit in not_split:
-                                            nsplit = nsplit.strip()
-                                            foundNot = nsplit.find(" NOT ")
-                                            foundOr = nsplit.find(" OR ")
-                                            
-                                            attr_list.append(nsplit)
-                                            if(numNot > 0):
-                                                attr_list.append(" NOT ")
-                                                numNot-=1
+                                        (foundNot, foundOr, numNot,attr_list) = find_not_operator(osplit,numNot,attr_list)
                                 if (numOr > 0):    
                                     attr_list.append(" OR ")
                                     numOr-=1
                     else:
-                        print "I have a not"
-                        not_split = asplit.split(" NOT ")
-                        for nsplit in not_split:
-                            nsplit = nsplit.strip()
-                            foundNot = nsplit.find(" NOT ")
-                            foundOr = nsplit.find(" OR ")
-                            
-                            attr_list.append(nsplit)
-                            if (numNot>0):
-                                attr_list.append(" NOT ")
-                                numNot-=1
+                        (foundNot, foundOr, numNot,attr_list) = find_not_operator(asplit,numNot,attr_list)
             if (numAnd > 0):                        
                 attr_list.append(" AND ")
                 numAnd-=1
         
-    print attr_list
- 
+    return attr_list
 
-    
-    
-    
+#This function is a helper for the function: split_logical_operators
+#For the given sub_attr, the function goes through and returns a list of the 
+# NOT attributes it has. Also updates the needed loop variables.    
+def find_not_operator(sub_attr,numNot, attr_list):
+    not_split = sub_attr.split(" NOT ")
+    for nsplit in not_split:
+        nsplit = nsplit.strip()
+        foundNot = nsplit.find(" NOT ")
+        foundOr = nsplit.find(" OR ")
+        
+        attr_list.append(nsplit)
+        if(numNot>0):
+            attr_list.append(" NOT ")
+            numNot-=1
+        
+    return (foundNot, foundOr, numNot, attr_list)
 
-def find_where_attr(clause):
-    
-    
+def find_where_attr(clause):    
     if (clause is None):
         return False
     clause = cleanValue(clause)
@@ -463,7 +444,9 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry):
                 qlist.append(query)
                 print "line 274: %s" %query
                 
+                #To delete
                 db.make_query(query)# make a db call and run the insert the query
+                
                 if (containAggregate):
                     #ALTER TABLE name_cosi ALTER COLUMN "?column?" TYPE varchar(20);
                     alterQuery = "ALTER TABLE " + str(tempTblName) + """ ALTER COLUMN "?column?" TYPE VARCHAR(20); """
@@ -493,9 +476,11 @@ def constructBigQueryResult (subSelects):
                 bigQuery += "SELECT * FROM "+ subSelect + union
                 
             bigQuery = bigQuery[:-6]
+            writeToFile (subSelects[1],bigQuery)
+            
+            #To delete
             result = db.allrows(bigQuery)
             print "line 306: %s" %bigQuery
-            writeToFile (subSelects[1],bigQuery)
             return result
 
 #Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
