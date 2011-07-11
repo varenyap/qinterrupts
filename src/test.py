@@ -1,7 +1,7 @@
 import db_connection
 
 def main():
-    
+
     db = db_connection.Db_connection()
     
     print "Resetting database first"

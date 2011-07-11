@@ -111,7 +111,7 @@ def split_logical_operators(clause):
     and_split = clause.split(' AND ')
     if (len(and_split) > 0):
         for asplit in and_split: # Go through each of the attribute split over the AND operator
-            asplit = asplit.strip()
+            asplit = cleanValue(asplit)
 
             #Update loop variables to see if logical operators exist in the split portion
             foundOr = asplit.find(" OR ")
@@ -125,7 +125,7 @@ def split_logical_operators(clause):
                         or_split = asplit.split(" OR ")
                         if (len(or_split) > 0):
                             for osplit in or_split:
-                                osplit = osplit.strip()
+                                osplit = cleanValue(osplit)
 
                                 #Update loop variables
                                 foundNot = osplit.find(" NOT ")
@@ -153,7 +153,7 @@ def split_logical_operators(clause):
 def find_not_operator(sub_attr,numNot, attr_list):
     not_split = sub_attr.split(" NOT ")
     for nsplit in not_split:
-        nsplit = nsplit.strip()
+        nsplit = cleanValue(nsplit)
         foundNot = nsplit.find(" NOT ")
         foundOr = nsplit.find(" OR ")
         
@@ -173,39 +173,7 @@ def find_where_attr(clause):
 #    print "Length = %d" %length
     attr_list = []
     print clause
-    split_logical_operators(clause)
-    
-#    if (clause):
-#        clause = clause.strip()
-#        attr_list = []
-#        splits = clause.split(delim) # Split the attributes based on the delimiter
-#
-#        for s in splits:
-#            #s = s.strip()
-#            s = cleanValue(s)
-#            i = 0
-#            table = ""
-#            attr = ""
-#            if (s.find(".") != -1):
-#                while(i<len(s) and s[i] != '.'):
-#                    table = table + s[i]
-#                    i+=1
-#                i+=1 # Go past the dot.
-#            while (i<len(s)):
-#                attr = attr + s[i]
-#                i+=1
-#            tup = (table, attr)
-#            attr_list.append(tup)
-##        print "line 115: Attr list --%s--" %attr_list    
-#        return attr_list
-#    else:
-#        return False
-    
-    
-    
-    
-    
-    
+    split_logical_operators(clause)    
 
 def find_groupby_clause(parsedList):
     if (parsedList is None):
@@ -247,12 +215,11 @@ def find_groupby_clause(parsedList):
 def find_attr_clause(clause,delim):
 #    print "line 94: Clause: --%s--"%clause
     if (clause):
-        clause = clause.strip()
+        clause = cleanValue(clause)
         attr_list = []
         splits = clause.split(delim) # Split the attributes based on the delimiter
 
         for s in splits:
-            #s = s.strip()
             s = cleanValue(s)
             i = 0
             table = ""
@@ -393,7 +360,7 @@ def get_query_result_as_list(query):
 def getTableNameForAlias (queryTables, tblAlias):
     if (tblAlias is None) :
         return None
-    tblAlias = tblAlias.strip()
+    tblAlias = cleanValue(tblAlias)
     if (queryTables and len(tblAlias) > 0):
         for alias in queryTables.iterkeys():
             if (alias == str(tblAlias)):
@@ -485,6 +452,7 @@ def constructBigQueryResult (subSelects):
 
 #Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
 def writeToFile (subSelects,bigQuery):
+    triplequote = (""" "" """).strip() + (""" " """).strip()
     filename = "scripts.py"
     FILE = open(filename,"w")
     if (not subSelects or len (bigQuery) == 0):
@@ -495,11 +463,13 @@ def writeToFile (subSelects,bigQuery):
         FILE.write('db.clear_database() # reset the database on each run.\n\n')
         FILE.write('# Make a db call and run the sub queries that will collectively evaluate to the main query result\n')
         for subSelect in subSelects:
-            FILE.write('db.make_query('+subSelect+')\n')
+            query = """db.make_query(""" + triplequote + subSelect + triplequote + """)\n"""
+            FILE.write(query)
+#            FILE.write('db.make_query('+subSelect+')\n')
         
         
         FILE.write('\n# The query that combines the results of small queries\n')
-        FILE.write('bigQuery = '+bigQuery+'\n\n')
+        FILE.write('bigQuery = '+triplequote + bigQuery+ triplequote + '\n\n')
         FILE.write('db.make_pquery(bigQuery)\n')
     FILE.close()
                 
@@ -516,39 +486,39 @@ def main():
 #              "GROUP BY e.name ")
     
     parsed_list = parse_sql_as_list(query1) #Parse sql into a walk-able list     
-    where_clause = find_where_clause(parsed_list)
     
-    find_where_attr(where_clause)
+#    where_clause = find_where_clause(parsed_list)
+#    find_where_attr(where_clause)
     
     
     
-#
-#    # 1. find the columns in group by clause
-#    grpByCols = find_groupby_clause(parsed_list)
-##    print "--%s--" %grpByCols
-#    
-#    # 2. split the group by attributes to table alias and column name
-#    attributes = find_attr_clause(grpByCols,",") # List of tuples t[0] = table alias t[1] = column name
-#    
-#    # 3. find all the tables in the query
-#    tblsInQry = find_tables(parsed_list) # A dictionary of table names and aliases - key alias, value table name
-#    print tblsInQry
-#    
-#    # 4. construct the list of distinct values for the attributes in group by clause
-#    distinctGrouupVals = find_distinct_group_by_values (tblsInQry,attributes) # dictionary with tableAlias.colums as key and a list of distinct values for that column
-#    
-#    # 5. find the columns in the select clause
-#    selectCols = find_select_columns (parsed_list)
-#    
-#    # 6. split the select attributes to table alias and column name
-#    selAttributes = find_attr_clause(selectCols,",") # List of tuples t[0] = table alias t[1] = column name
-#    
-#    # 7. construct the sub selects for each distinct value represented in the group by clause
-#    subSelects = constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry) # dictionary having the temp table as key and the query for that table as value
-#    
-#    #8. Union the small queries to evaluate the big query
-#    queryResults = constructBigQueryResult(subSelects)
-#    print" Results: \n\n%s" %queryResults
+
+    # 1. find the columns in group by clause
+    grpByCols = find_groupby_clause(parsed_list)
+#    print "--%s--" %grpByCols
+    
+    # 2. split the group by attributes to table alias and column name
+    attributes = find_attr_clause(grpByCols,",") # List of tuples t[0] = table alias t[1] = column name
+    
+    # 3. find all the tables in the query
+    tblsInQry = find_tables(parsed_list) # A dictionary of table names and aliases - key alias, value table name
+    print tblsInQry
+    
+    # 4. construct the list of distinct values for the attributes in group by clause
+    distinctGrouupVals = find_distinct_group_by_values (tblsInQry,attributes) # dictionary with tableAlias.colums as key and a list of distinct values for that column
+    
+    # 5. find the columns in the select clause
+    selectCols = find_select_columns (parsed_list)
+    
+    # 6. split the select attributes to table alias and column name
+    selAttributes = find_attr_clause(selectCols,",") # List of tuples t[0] = table alias t[1] = column name
+    
+    # 7. construct the sub selects for each distinct value represented in the group by clause
+    subSelects = constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry) # dictionary having the temp table as key and the query for that table as value
+    
+    #8. Union the small queries to evaluate the big query
+    queryResults = constructBigQueryResult(subSelects)
+    print" Results: \n\n%s" %queryResults
         
 #    db.display_schema()
     
