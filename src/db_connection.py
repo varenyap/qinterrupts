@@ -49,46 +49,52 @@ class Db_connection:
 
     # Use for select queries only so as to display results
     def make_pquery(self,query):
-        self.openConnection()
-        row = ""
-        
-        (self.cursor).execute(query)        
-        for row in self.cursor:
-            print row
-
-        value = 0
-        if (len(row) > 0):
-            value = 1
-
-        self.closeConnection(self.conn,self.cursor)
-        return value
+        if (query is not None):
+            self.openConnection()
+            row = ""
+            
+            (self.cursor).execute(query)        
+            for row in self.cursor:
+                print row
+    
+            value = 0
+            if (len(row) > 0):
+                value = 1
+    
+            self.closeConnection(self.conn,self.cursor)
+            return value
+        return None
     
     # Use for queries when the result need not be displayed to screen    
     def make_query(self,query):
-        self.openConnection()
-        (self.cursor).execute(query)
-        (self.conn).commit()    
-#        print query
-        self.closeConnection(self.conn,self.cursor)
+        if (query is not None):
+            self.openConnection()
+            (self.cursor).execute(query)
+            (self.conn).commit()    
+    #        print query
+            self.closeConnection(self.conn,self.cursor)
 
     # Use when the first result of the query is needed.
     def onerow(self,query):
-        self.openConnection()
-        (self.cursor).execute(query)
-        result = (self.cursor).fetchone()
-        self.closeConnection(self.conn,self.cursor)
-        return result
+        if (query is not None):
+            self.openConnection()
+            (self.cursor).execute(query)
+            result = (self.cursor).fetchone()
+            self.closeConnection(self.conn,self.cursor)
+            if (result is not None):
+                return result
+        return None   
     
     #Use when you want all the results of the query
     def allrows(self,query):
-        self.openConnection()
-        (self.cursor).execute(query)
-        result = (self.cursor).fetchall()
-        self.closeConnection(self.conn,self.cursor)
-        if (result):
-            return result
-        else:
-            return None
+        if (query is not None):
+            self.openConnection()
+            (self.cursor).execute(query)
+            result = (self.cursor).fetchall()
+            self.closeConnection(self.conn,self.cursor)
+            if (result is not None):
+                return result
+        return None
     
     def list_tables(self):
         query = ("SELECT tablename"
