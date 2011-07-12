@@ -130,7 +130,8 @@ class Db_connection:
              
 def main():
     dbobj = Db_connection()
-    dbobj.display_schema()
+    dbobj.clear_database()
+#    dbobj.display_schema()
 #    print dbobj.list_tables()
 #    print dbobj.list_table_attributes('quotes')
 #    print dbobj.list_table_attributes('q_orcl')
