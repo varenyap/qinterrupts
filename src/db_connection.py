@@ -134,17 +134,6 @@ def main():
 #    print dbobj.list_tables()
 #    print dbobj.list_table_attributes('quotes')
 #    print dbobj.list_table_attributes('q_orcl')
-
-    
-#    query = ("SELECT a.attname AS Column, t.typname AS Type"
-#             " FROM pg_class c, pg_attribute a, pg_type t"
-#             " WHERE c.relname = 'quotes'"
-#                " AND a.attnum > 0"
-#                " AND a.attrelid = c.oid"
-#                " AND a.atttypid = t.oid"
-#                " ORDER BY a.attnum;")
-#    
-#    dbobj.make_pquery(query)
     
 
     
