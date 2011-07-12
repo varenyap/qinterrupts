@@ -4,9 +4,9 @@ import myparser
 
 db = db_connection.Db_connection()
 
-def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry):
-    if (selAttributes and distinctGrouupVals and tblsInQry):
-        queryTemptblMap = {}
+def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrList):
+    if (selAttributes and distinctGrouupVals and tblsInQry and whereAttrList):
+        queryTemptblMap = {} # to map the query executed and the new table created. 
         selColumns = ''
         containAggregate = False
         
@@ -29,14 +29,22 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry):
             fromClause = fromClause + table+ ' '+ alias + ','
         fromClause = fromClause.rstrip(",")
         
-        # Colletct queries with in to part
+        orgWhereClause = " WHERE "
+        for item in whereAttrList:
+            orgWhereClause += str(item)
+        orgWhereClause += " AND "
+        
+        # Collect queries with in to part
         qlist = []
         for val in distinctGrouupVals.iterkeys():
             tempDistVals = distinctGrouupVals[val]
             for distVal in tempDistVals:
-                whereClaus = ' WHERE '+ str(val)+ '=' + "'"+str(distVal[0])+"'"
+                whereClaus = orgWhereClause +str(val) + '=' + "'"+str(distVal[0])+"'"  
+#                whereClaus = ' WHERE '+ str(val)+ '=' + "'"+str(distVal[0])+"'"
                 tempTblName = str(val)+"_"+str(distVal[0])
                 tempTblName = tempTblName.replace('.','_')
+                
+                print "MY WHERE CLAUSE IS %s" %whereClaus
                 
                 # SELECT AVG  (e.salary),'COSI' INTO d_name_COSI FROM employee e,department d WHERE d.name='COSI'
                 
