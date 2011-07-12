@@ -98,12 +98,7 @@ def find_where_attr(clause):
     if (clause is None):
         return False
     clause = myhelper.cleanValue(clause)
-#    print "I am in the function --%s--" %clause
-#    length = len(clause)
-#    print "Length = %d" %length
-#    attr_list = []
-    print clause
-    myhelper.split_logical_operators(clause)    
+    return myhelper.split_logical_operators(clause)
 
 def find_groupby_clause(parsedList):
     if (parsedList is None):
