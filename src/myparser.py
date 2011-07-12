@@ -98,7 +98,9 @@ def find_where_attr(clause):
     if (clause is None):
         return False
     clause = myhelper.cleanValue(clause)
-    return myhelper.split_logical_operators(clause)
+    
+    list = myhelper.split_logical_operators(clause)
+    return myhelper.split_parenthesis(list)
 
 def find_groupby_clause(parsedList):
     if (parsedList is None):

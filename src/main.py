@@ -10,7 +10,7 @@ def main():
     
     query1 = ("SELECT d.name, AVG (e.salary) "
               " FROM employee e, department d "
-              " WHERE e.dept_id = d.id and (e.dept_od = f.piece or d.dept_id = 89) "
+              " WHERE (e.dept_id = d.id and (e.dept_od = f.piece or d.dept_id = 89)) "
               " GROUP BY d.name")
     
     parsed_list = myparser.parse_sql_as_list(query1) #Parse sql into a walk-able list  

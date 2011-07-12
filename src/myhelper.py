@@ -1,6 +1,4 @@
 
-
-
 def cleanValue (val):
     if (val is None):
         return None
@@ -110,4 +108,49 @@ def find_not_operator(sub_attr,numNot, attr_list):
         
     return (foundNot, foundOr, numNot, attr_list)
 
+def isparenthesis(str):
+    if (str is not None):
+        types_parenthesis = ["(", ")"]
+        if (cleanValue(str) in types_parenthesis):
+            return True
+    return False
 
+def split_parenthesis(clause_list):
+    attr_list = []
+    foundParen = False
+    
+    for item in clause_list:
+        index= 0
+        parenValue = ""
+#        print item
+        for str in item:
+            if (isparenthesis(str)):
+#                print "I found a paren at %d in %s " %(index,item)
+                foundParen = True
+                parenValue = str
+                break
+            index+=1
+        if (foundParen):
+            attr_list.append(parenValue)
+            index+=1
+            temp = item[index:]
+#            print "temp: %s"%temp
+            if (temp is not ""):
+                attr_list.append(temp)
+            foundParen = False
+        else:
+            if (item is not ""):
+                attr_list.append(item)
+    
+    return attr_list
+
+def main():
+    clause = "e.dept_id = d.id and (e.dept_od = f.piece or d.dept_id = 89) "
+    list = split_logical_operators(clause)
+    print split_parenthesis(list)
+    
+    
+
+    
+if __name__ == "__main__":
+    main()
