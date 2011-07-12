@@ -85,7 +85,10 @@ class Db_connection:
         (self.cursor).execute(query)
         result = (self.cursor).fetchall()
         self.closeConnection(self.conn,self.cursor)
-        return result
+        if (result):
+            return result
+        else:
+            return None
     
     def list_tables(self):
         query = ("SELECT tablename"
