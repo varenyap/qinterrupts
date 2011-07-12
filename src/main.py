@@ -10,7 +10,7 @@ def main():
     
     query1 = ("SELECT d.name, AVG (e.salary) "
               " FROM employee e, department d "
-              " WHERE e.dept_id = d.id  "
+              " WHERE e.dept_id = d.id "
               " GROUP BY d.name")
     
     
