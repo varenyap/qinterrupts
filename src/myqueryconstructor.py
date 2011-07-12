@@ -10,14 +10,9 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
         selColumns = ''
         containAggregate = False
         
-        for selAtt in selAttributes:
-            if (myhelper.isAggregate(selAtt)) :
-                containAggregate = True
-                selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+','
         
-        if (not containAggregate):
-            for selAtt in selAttributes:
-                selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+','
+        for selAtt in selAttributes:
+            selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+','
         
         selColumns = selColumns.rstrip(",")
         selectClause = 'SELECT '+ str(selColumns)
@@ -30,48 +25,35 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
         fromClause = fromClause.rstrip(",")
         
         orgWhereClause = " WHERE "
+        orgWhereAtt = ''
         for item in whereAttrList:
-            orgWhereClause += str(item)
-        orgWhereClause += " AND "
+            orgWhereClause += str(item) + ' AND '
         
         # Collect queries with in to part
         qlist = []
-        for val in distinctGrouupVals.iterkeys():
-            tempDistVals = distinctGrouupVals[val]
-            for distVal in tempDistVals:
-                whereClaus = orgWhereClause +str(val) + '=' + "'"+str(distVal[0])+"'"  
-#                whereClaus = ' WHERE '+ str(val)+ '=' + "'"+str(distVal[0])+"'"
-                tempTblName = str(val)+"_"+str(distVal[0])
-                tempTblName = tempTblName.replace('.','_')
+        distCount = len (distinctGrouupVals)
+        i = 0
+        while (i < distCount):
+            i += 1
+            whereClaus = ''
+            tempTblName = ''
+            for val in distinctGrouupVals.iterkeys():
+                tempDistVals = distinctGrouupVals[val]
+                if (tempDistVals):
+                    whereClaus += str(val) + '=' + "'"+str(tempDistVals[0])+"' AND "
+                    tempTblName += str(val)+"_"+str(tempDistVals[0])+'_'
+            
+            whereClaus = whereClaus.rstrip(' AND ')        
+            tempTblName = tempTblName.replace(' ','_')
+            tempTblName = tempTblName.replace('.','_')        
+            query = selectClause+' INTO '+ str(tempTblName) + str(fromClause) + str(orgWhereClause+whereClaus)
+                    
+            qlist.append(query)
+
+                    
+            query = selectClause + fromClause + whereClaus
+            queryTemptblMap [tempTblName] = query
                 
-                print "MY WHERE CLAUSE IS %s" %whereClaus
-                
-                # SELECT AVG  (e.salary),'COSI' INTO d_name_COSI FROM employee e,department d WHERE d.name='COSI'
-                
-                if (containAggregate):
-                    query = selectClause+ ",'"+ str(distVal[0]) +"'"+' INTO '+ str(tempTblName) + str(fromClause) + str(whereClaus)
-                else:
-                    query = selectClause+' INTO '+ str(tempTblName) + str(fromClause) + str(whereClaus)
-                
-                qlist.append(query)
-                print "line 274: %s" %query
-                
-                #To delete
-                db.make_query(query)# make a db call and run the insert the query
-                
-                if (containAggregate):
-                    #ALTER TABLE name_cosi ALTER COLUMN "?column?" TYPE varchar(20);
-                    alterQuery = "ALTER TABLE " + str(tempTblName) + """ ALTER COLUMN "?column?" TYPE VARCHAR(20); """
-                    db.make_query(alterQuery)
-                    qlist.append(alterQuery)
-                
-                # construct the query without in to part to persist which temp table contains which query result
-                if (containAggregate):
-                    query = selectClause + ",'"+str(distVal[0])+"'" + fromClause + whereClaus
-                    queryTemptblMap [tempTblName] = query
-                else:
-                    query = selectClause + fromClause + whereClaus
-                    queryTemptblMap [tempTblName] = query
         
         retVal = []
         retVal.append(queryTemptblMap)
@@ -91,9 +73,8 @@ def constructBigQueryResult (subSelects):
             writeToFile (subSelects[1],bigQuery)
             
             #To delete
-            result = db.allrows(bigQuery)
-            print "line 306: %s" %bigQuery
-            return result
+            #result = db.allrows(bigQuery)
+            #return result
 
 #Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
 def writeToFile (subSelects,bigQuery):

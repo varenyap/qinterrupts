@@ -8,10 +8,10 @@ def main():
     
     db.clear_database() # reset the database on each run. 
     
-    query1 = ("SELECT d.name, AVG (e.salary) "
+    query1 = ("SELECT d.name, e.name, AVG (e.salary) "
               " FROM employee e, department d "
               " WHERE e.dept_id = d.id "
-              " GROUP BY d.name")
+              " GROUP BY d.name,e.name")
     
     
     # 1. Parse the given query into a walkable list structure
@@ -47,7 +47,7 @@ def main():
     
     # 11. Union the small queries to evaluate the big query
     queryResults = myqueryconstructor.constructBigQueryResult(subSelects)
-    print" Results: \n\n%s" %queryResults
+    #print" Results: \n\n%s" %queryResults
         
 #    db.display_schema()
     
