@@ -50,7 +50,7 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
         gByAtt1 = None
         gByAtt2 = None
         gByAtt3 = None
-        aByAtt4 = None
+        gByAtt4 = None
         
         # Iterate the dictionary containing the group by column names and dist values and assign them to above variables
         for att in distinctGrouupVals.iterkeys():
