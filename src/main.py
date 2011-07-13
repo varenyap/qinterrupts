@@ -8,10 +8,25 @@ def main():
     
     db.clear_database() # reset the database on each run. 
     
+    
+    
+    
+    
     query1 = ("SELECT d.name, e.name, AVG (e.salary) "
-              " FROM employee e, department d "
-              " WHERE e.dept_id = d.id "
-              " GROUP BY d.name,e.name")
+              " FROM employee e, department d, employee_skill es"
+              " WHERE e.dept_id = d.id"
+              " GROUP BY d.name")
+    
+    
+    query1 = ("SELECT d.name, e.name, AVG (e.salary) "
+              " FROM employee e, department d, employee_skill es"
+              " WHERE e.dept_id = d.id"
+              " GROUP BY d.name, e.name")
+    
+    query1 = ("SELECT d.name, e.name, AVG (e.salary) "
+              " FROM employee e, department d, employee_skill es"
+              " WHERE e.dept_id = d.id and e.id = es.emp_id"
+              " GROUP BY d.name,es.skill,e.id")
     
     
     # 1. Parse the given query into a walkable list structure

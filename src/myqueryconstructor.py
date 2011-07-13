@@ -18,7 +18,7 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
         
         if (not containAggregate):
             for selAtt in selAttributes:
-                selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+','
+                selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+' AS ' +str(selAtt[0])+'_'+str(selAtt[1])+','
         
         aggSelects = aggSelects.rstrip(",")
         selColumns = selColumns.rstrip(",")
@@ -34,7 +34,8 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
         orgWhereClause = " WHERE "
         orgWhereAtt = ''
         for item in whereAttrList:
-            orgWhereClause += str(item) + ' AND '
+            orgWhereClause += str(item)
+        orgWhereClause = orgWhereClause+ ' AND '
         
         # Collect queries with in to part
         qlist = []
