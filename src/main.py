@@ -6,7 +6,11 @@ db = db_connection.Db_connection()
 
 def main():
     
-    db.clear_database() # reset the database on each run. 
+    db.clear_database() # reset the database on each run.
+    
+    
+    
+    
     
     query1 = ("SELECT d.name, e.name, AVG (e.salary) "
               " FROM employee e, department d, employee_skill es"
@@ -18,20 +22,19 @@ def main():
               " FROM employee e, department d, employee_skill es"
               " WHERE e.dept_id = d.id"
               " GROUP BY d.name, e.name")
-
     
-#    query1 = (" SELECT d.name as d_name, e.name as e_name, avg (e.salary) " 
-#              " FROM employee e, department d, employee_skill es " 
-#              " WHERE e.dept_id = d.id and e.id = es.emp_id " 
-#              " GROUP BY d.name,es.skill,e.name ")
-
+    query1 = ("SELECT d.name as d_name, e.name as e_name, avg (e.salary) "
+              " FROM employee e, department d, employee_skill es"
+              " WHERE e.dept_id = d.id and e.id = es.emp_id"
+              " GROUP BY d.name,es.skill,e.name")
+    
     
     # 1. Parse the given query into a walkable list structure
-    parsed_list = myparser.parse_sql_as_list(query1) #Parse sql into a walk-able list  
+    parsed_list = myparser.parse_sql_as_list(query1) #Parse sql into a walk-able list
 
     # 2. find the columns in group by clause
     grpByCols = myparser.find_groupby_clause(parsed_list)
-#    print "--%s--" %grpByCols
+# print "--%s--" %grpByCols
     
     # 3. split the group by attributes to table alias and column name
     attributes = myparser.find_attr_clause(grpByCols,",") # List of tuples t[0] = table alias t[1] = column name
@@ -52,7 +55,7 @@ def main():
     whereClause = myparser.find_where_clause(parsed_list)
     
     # 9. Construct list of where clause attributes
-    where_attr_list =  myparser.find_where_attr(whereClause)
+    where_attr_list = myparser.find_where_attr(whereClause)
     
     # 10. construct the sub selects for each distinct value represented in the group by clause
     subSelects = myqueryconstructor.constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,where_attr_list) # dictionary having the temp table as key and the query for that table as value
@@ -61,7 +64,7 @@ def main():
     queryResults = myqueryconstructor.constructBigQueryResult(subSelects)
     #print" Results: \n\n%s" %queryResults
         
-#    db.display_schema()
+# db.display_schema()
     
 if __name__ == "__main__":
     main()
