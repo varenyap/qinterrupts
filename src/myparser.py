@@ -102,6 +102,46 @@ def find_where_attr(clause):
     list = myhelper.split_logical_operators(clause)
     return myhelper.split_parenthesis(list)
 
+def find_having_clause(parsedList):
+    if (parsedList is None):
+        return False
+            
+    i = 0
+    attr_list = ""
+    foundHaving = False
+    foundAttr = False
+    length = len(parsedList)
+    
+    for parsed in parsedList:
+        i += 1
+        if (str(parsed[0]) == 'Token.Keyword'):
+            if (str(parsed[1]) == 'HAVING'):
+                foundHaving = True
+            
+        if (foundHaving): #found the having part of the query
+            while (i< length and foundAttr is False):
+                if(str(parsedList[i][0]) =='Token.Keyword'): 
+                    str_parsedList = str(parsedList[i][1])
+                    #Make sure valid where clause operators/keywords are included
+                    if (myhelper.isWhereClauseOperator(str_parsedList) or myhelper.isLogicalOperator(str_parsedList)):
+                        attr_list = attr_list + str_parsedList
+                    else:
+                        foundAttr = True
+                    i+=1
+                else:
+                    attr_list = attr_list + str(parsedList[i][1])
+                    i+=1
+            break;
+        if (foundAttr): #No need for loop to continue
+            break;
+            
+    #Set return values
+    if (foundHaving):
+        return myhelper.cleanValue(attr_list)
+    else:
+        print "Error: Couldn't find having clause in query"
+        return False
+
 def find_groupby_clause(parsedList):
     if (parsedList is None):
         return False

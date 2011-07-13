@@ -101,7 +101,7 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
                         else: #3
                             handleTheQuery (selectClause,fromClause,whereClaus,tempTblName,orgWhereClause,qlist,queryTemptblMap)    
                 else: #2
-                   handleTheQuery (selectClause,fromClause,whereClaus,tempTblName,orgWhereClause,qlist,queryTemptblMap)
+                    handleTheQuery (selectClause,fromClause,whereClaus,tempTblName,orgWhereClause,qlist,queryTemptblMap)
         
         retVal = []
         retVal.append(queryTemptblMap)
