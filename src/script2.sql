@@ -21,6 +21,7 @@ INSERT INTO employee(id, dept_id, name, salary) VALUES(1,3,'Mary Tolson',45418);
 INSERT INTO employee(id, dept_id, name, salary) VALUES(1,4,'Mary Tolson',45418);
 INSERT INTO employee(id, dept_id, name, salary) VALUES(2,1,'Tom Wilson',39802);--insert employees
 INSERT INTO employee(id, dept_id, name, salary) VALUES(3,1,'Henry Thomas',93437);
+INSERT INTO employee(id, dept_id, name, salary) VALUES(3,1,'Henry Thomas',52000);
 INSERT INTO employee(id, dept_id, name, salary) VALUES(4,2,'Lisa Link Thomas',29372);
 INSERT INTO employee(id, dept_id, name, salary) VALUES(5,2,'John Holden',87363);
 INSERT INTO employee(id, dept_id, name, salary) VALUES(6,3,'Mike Hunter',459891);
