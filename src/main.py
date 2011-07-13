@@ -23,10 +23,10 @@ def main():
               " WHERE e.dept_id = d.id"
               " GROUP BY d.name, e.name")
     
-    query1 = ("SELECT d.name, e.name, AVG (e.salary) "
+    query1 = ("SELECT d.name as d_name, e.name as e_name, avg (e.salary) "
               " FROM employee e, department d, employee_skill es"
               " WHERE e.dept_id = d.id and e.id = es.emp_id"
-              " GROUP BY d.name,es.skill,e.id")
+              " GROUP BY d.name,es.skill,e.name")
     
     
     # 1. Parse the given query into a walkable list structure
