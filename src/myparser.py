@@ -102,6 +102,7 @@ def find_where_attr(clause):
     list = myhelper.split_logical_operators(clause)
     return myhelper.split_parenthesis(list)
 
+
 def find_having_clause(parsedList):
     if (parsedList is None):
         return False
@@ -122,7 +123,7 @@ def find_having_clause(parsedList):
             while (i< length and foundAttr is False):
                 if(str(parsedList[i][0]) =='Token.Keyword'): 
                     str_parsedList = str(parsedList[i][1])
-                    #Make sure valid where clause operators/keywords are included
+                    #Make sure valid WHERE clause operators/keywords are included
                     if (myhelper.isWhereClauseOperator(str_parsedList) or myhelper.isLogicalOperator(str_parsedList)):
                         attr_list = attr_list + str_parsedList
                     else:
@@ -141,6 +142,74 @@ def find_having_clause(parsedList):
     else:
         print "Error: Couldn't find having clause in query"
         return False
+
+def find_having_attr(clause):
+    if (clause is None):
+        return False
+    clause = myhelper.cleanValue(clause)
+    
+    list = myhelper.split_logical_operators(clause)
+    list = myhelper.split_parenthesis(list)
+    
+    result = myhelper.between_operator_attr(list)
+    if (result is not False): # Case1: The having clause has a between 
+        return result
+    else: #Case2: No between in the having clause
+        return list
+
+def find_orderby_clause(parsedList):
+    if (parsedList is None):
+        return False
+    
+    i = 0
+    attr_list = ""
+    foundGroup = False
+    foundAttr = False
+    length = len(parsedList)
+    
+    for parsed in parsedList:
+        i += 1
+        if (str(parsed[0]) == 'Token.Keyword'):
+            if (str(parsed[1]) == 'ORDER'):
+                foundGroup = True
+
+        if (foundGroup): #found the ORDER part of the clause
+            if (str(parsedList[i+1][0]) == 'Token.Keyword' and str(parsedList [i+1][1]) == 'BY'):
+                i+=2 #At this point, found ORDER BY tokens so moving past them
+                while (i < length and foundAttr is False):
+                    currentArg = str(parsedList[i][0])
+                    if (currentArg != 'Token.Keyword'):
+                        attr_list = attr_list + str(parsedList[i][1])
+                        i+=1
+                    elif (currentArg == 'Token.Keyword'):
+                        if(str(parsedList[i][1]) is 'DESC' or 'ASC'):
+                            attr_list = attr_list + str(parsedList[i][1])   
+                            i+=1
+                    elif(currentArg == 'Token.Punctuation'):
+                        attr_list = attr_list + str(parsedList[i][1])
+                        i+=1 
+                    else:
+                        foundAttr = True
+            break;
+        if (foundAttr): #No need for loop to continue
+            break;
+    
+    #Set return values
+    if (foundGroup):
+        return attr_list
+    else:
+        print "Error: Couldn't find order by clause in query"
+        return False
+
+# split the order by attributes on the comma. Return tuple of attributes
+def find_orderby_attr(clause):
+    if (clause is None):
+        return False
+    splits = clause.split(",") # Split the attributes
+    for s in splits:
+        s = s.strip()
+    return s
+
 
 def find_groupby_clause(parsedList):
     if (parsedList is None):

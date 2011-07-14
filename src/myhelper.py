@@ -156,6 +156,48 @@ def split_parenthesis(clause_list):
     
     return attr_list
 
+# Input is of the following example format: ['SALARY BETWEEN 90000', ' AND ', '459891']
+# returns dictionary {attribute, max, min} i.e {'attribute':salary,'max':459891, 'min':90000}
+# If there is no between, returns False
+# Todo: dealing with parenthesis in the having clause
+def between_operator_attr(attrList):
+    if (attrList is None):
+        return False
+
+    for attr in attrList:
+        attr = cleanValue(str(attr))
+        attr = attr.upper()
+        bindex = isBetweenOperator(attr) 
+
+        if (bindex is not -1):
+            length = len(attr)
+            havingattribute = ""
+            min = ""
+            i = 0
+            while(i < bindex): #Grab the attribute
+                havingattribute+=str(attr[i])
+                i+=1
+            while(i <length and attr[i] is not " "): #past the between
+                i+=1
+            while (i <length): #Grab the minimum
+                min+= attr[i]
+                i+=1
+
+            max = attrList[2] #Grab max, needs to be fixed to include parenthesis
+            return {'attribute': cleanValue(havingattribute), 'max':cleanValue(max), 'min':cleanValue(min) }
+    
+    return False
+
+#function determines if the input i.e attr is 'Between'
+def isBetweenOperator(attr):    
+    if (attr is not None):
+        attr = cleanValue(str(attr))
+        attr = attr.upper()
+        index = attr.find("BETWEEN")
+        return index    
+
+
+
 def main():
     clause = "e.dept_id = d.id and (e.dept_od = f.piece or d.dept_id = 89) "
     list = split_logical_operators(clause)
