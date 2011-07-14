@@ -10,12 +10,16 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
         selColumns = ''
         containAggregate = False
         
+        additionalWhere = ''
         aggSelects = ''
         for selAtt in selAttributes:
             if (myhelper.isAggregate(selAtt)) :
                 containAggregate = True
-                aggSelects = aggSelects + str(selAtt[0])+'.'+str(selAtt[1])+','
+                aggSelects = aggSelects + str(selAtt[0])+'.'+str(selAtt[1])+' AS '+myhelper.remAggregate(str(selAtt[0]))+'_'+str(selAtt[1].replace(")",''))+',' 
+                additionalWhere = additionalWhere + myhelper.remAggregate(str(selAtt[0]))+'_'+str(selAtt[1].replace(")",''))+' IS NOT NULL AND'
         
+        additionalWhere = additionalWhere.rstrip(' AND')
+
         if (not containAggregate):
             for selAtt in selAttributes:
                 selColumns = selColumns + str(selAtt[0])+'.'+str(selAtt[1])+' AS ' +str(selAtt[0])+'_'+str(selAtt[1])+','
@@ -105,7 +109,8 @@ def constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,whereAttrL
         
         retVal = []
         retVal.append(queryTemptblMap)
-        retVal.append(qlist)      
+        retVal.append(qlist)
+        retVal.append(additionalWhere)      
         return retVal
 
 def handleTheQuery (selectClause,fromClause,whereClaus,tempTblName,orgWhereClause,qlist,queryTemptblMap):
@@ -119,12 +124,15 @@ def handleTheQuery (selectClause,fromClause,whereClaus,tempTblName,orgWhereClaus
 def constructBigQueryResult (subSelects):
     if (subSelects):
         dictSS = subSelects [0]
+        additionalWhere = subSelects [2]
+        if (len(additionalWhere) > 0) :
+            additionalWhere = " WHERE " + additionalWhere
         tempTables = []
         if (dictSS):
             bigQuery = ''
             union = " UNION "
             for subSelect in dictSS.iterkeys():
-                bigQuery += "SELECT * FROM "+ subSelect + union
+                bigQuery += "SELECT * FROM "+ subSelect + additionalWhere + union
                 tempTables.append(subSelect)
                 
             bigQuery = bigQuery[:-6]

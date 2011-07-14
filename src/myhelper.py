@@ -18,6 +18,18 @@ def isAggregate (attr):
                 return True
     return False
 
+def remAggregate (attr):
+    aggregateKeywords = ["SUM","MIN","MAX","AVG"]
+    if (attr is not None):
+        attr = cleanValue(str(attr))
+        attr = attr.upper()
+        for keyWord in aggregateKeywords:
+            if (keyWord in attr):
+                attr = attr.replace("(",'')
+                attr = attr.replace(")",'')
+                return attr.replace(keyWord,'').lower()
+    return False
+
 def isWhereClauseOperator(attr):
     whereClauseOperators = ["=", "<>", "!=", ">", "<", ">=", "<=", "BETWEEN", "LIKE", "IN", "IS NULL"]
     if (attr is not None):
