@@ -1,20 +1,27 @@
 import sqlparse
 
 class myqueryclauses:
-    selectIdent = sqlparse.sql.IdentifierList()
-    fromIdent = sqlparse.sql.IdentifierList()
-    whereIdent = sqlparse.sql.IdentifierList()
-    groupbyIdent = sqlparse.sql.IdentifierList()
-    orderbyIdent = sqlparse.sql.IdentifierList()
-    havingIdent = sqlparse.sql.IdentifierList()
+    selectIdent = None
+    fromIdent = None
+    whereIdent = None
+    groupbyIdent = None
+    orderbyIdent = None
+    havingIdent = None
     
     def __init__(self):
-        selectIdent = sqlparse.sql.IdentifierList()
-        fromIdent = sqlparse.sql.IdentifierList()
-        whereIdent = sqlparse.sql.IdentifierList()
-        groupbyIdent = sqlparse.sql.IdentifierList()
-        orderbyIdent = sqlparse.sql.IdentifierList()
-        havingIdent = sqlparse.sql.IdentifierList()
+        selectIdent = None
+        fromIdent = None
+        whereIdent = None
+        groupbyIdent = None
+        orderbyIdent = None
+        havingIdent = None
+        
+#        selectIdent = sqlparse.sql.IdentifierList()
+#        fromIdent = sqlparse.sql.IdentifierList()
+#        whereIdent = sqlparse.sql.IdentifierList()
+#        groupbyIdent = sqlparse.sql.IdentifierList()
+#        orderbyIdent = sqlparse.sql.IdentifierList()
+#        havingIdent = sqlparse.sql.IdentifierList()
     
     def setSelectIdent (self,ident):
         self.selectIdent = ident
@@ -30,20 +37,35 @@ class myqueryclauses:
         self.havingIdent = ident
     
     def getSelectIdent (self):
-        print "SELECT IDENTIFIERS:^^^^^^%s^^^^^"%self.selectIdent
+#        print "SELECT IDENTIFIERS:^^^^^^%s^^^^^"%self.selectIdent
         return self.selectIdent
     def getFromIdent (self):
-        print "FROM IDENTIFIERS:^^^^^^%s^^^^^"%self.fromIdent
+#        print "FROM IDENTIFIERS:^^^^^^%s^^^^^"%self.fromIdent
         return self.fromIdent
     def getWhereIdent (self):
-        print "WHERE IDENTIFIERS:^^^^^^%s^^^^^"%self.whereIdent
+#        print "WHERE IDENTIFIERS:^^^^^^%s^^^^^"%self.whereIdent
         return self.whereIdent
     def getGroupbyIdent (self):
-        print "GROUP BY IDENTIFIERS:^^^^^^%s^^^^^"%self.groupbyIdent
+#        print "GROUP BY IDENTIFIERS:^^^^^^%s^^^^^"%self.groupbyIdent
         return self.groupbyIdent
     def getOrderbyIdent (self):
-        print "ORDER BY IDENTIFIERS:^^^^^^%s^^^^^"%self.orderbyIdent
+#        print "ORDER BY IDENTIFIERS:^^^^^^%s^^^^^"%self.orderbyIdent
         return self.orderbyIdent
     def getHavingIdent (self):
-        print "HAVING IDENTIFIERS:^^^^^^%s^^^^^"%self.havingIdent
+#        print "HAVING IDENTIFIERS:^^^^^^%s^^^^^"%self.havingIdent
         return self.havingIdent
+    
+    def dispay(self):
+        if (self.selectIdent is not None):
+            print "SELECT IDENTIFIERS:^^^^^^%s^^^^^"%self.selectIdent
+        if (self.fromIdent is not None):
+            print "FROM IDENTIFIERS:^^^^^^%s^^^^^"%self.fromIdent
+        if (self.whereIdent is not None):
+            print "WHERE IDENTIFIERS:^^^^^^%s^^^^^"%self.whereIdent
+        if (self.groupbyIdent is not None):
+            print "GROUP BY IDENTIFIERS:^^^^^^%s^^^^^"%self.groupbyIdent
+        if (self.orderbyIdent is not None):
+            print "ORDER BY IDENTIFIERS:^^^^^^%s^^^^^"%self.orderbyIdent
+        if (self.havingIdent is not None):
+            print "HAVING IDENTIFIERS:^^^^^^%s^^^^^"%self.havingIdent
+        print " -----------------------Finished printing the parsed query clauses-----------------------"

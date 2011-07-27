@@ -1,372 +1,221 @@
+#===============================================================================
+# myparser.py
+# Given a SQL query, the file is used to parse the query into its various
+# components such that the attributes for each clause are returned in a
+# read-able format.
+# For each clause, returns an identifier, or an identifier list.
+# Handles the following keywords: SELECT, FROM, WHERE, GROUP BY, ORDER BY and
+# all aggregates
+# Need the Having clause
+#===============================================================================
+
 import sqlparse
-import db_connection
+from sqlparse import sql
+from sqlparse.tokens import *
 import myhelper
+import myqueryclauses
 
-db = db_connection.Db_connection()
+#queryclauses = myqueryclauses.myqueryclauses()
+import myqueryconstructor
 
-def parse_sql_as_list (sql):
-    if (sql is None or len (sql) == 0):
-        return None
-    sql = sqlparse.format(sql, reindent=True, keyword_case='upper')
+def getUserInput():    
+    userInput = ""
+    entry = raw_input("Enter query, 'done' on its own line to quit: \n")
+    while entry.lower() != "done":
+        userInput+=str(entry)
+        userInput+=" "
+        entry = raw_input("")
+    return userInput
 
-    parsedQuery = sqlparse.lexer.tokenize (sql)
-    # Convert the parsed query to a list
-    parsedList = []
-    for parsed in parsedQuery:
-        parsedList.append(parsed)
-    return parsedList
+def tokenizeUserInput(userInput):
+#    query1 = ("SELECT d.name, AVG (e.salary) "
+#              " FROM employee e, department d"
+#              " WHERE e.dept_id = d.id"
+#              " GROUP BY d.name")
+#    
+#    userInput = query1
+    
+    fromattedquery = sqlparse.format(userInput,keyword_case = 'upper', identifier_case = 'lower', strip_comments = True)
+    mystmt = sqlparse.parse(fromattedquery)[0]
+#    print "Statement: %s" %mystmt
+    mytok = mystmt.tokens
+    mytoklen = len(mytok)
+    return (mytok, mytoklen)
 
-#def get_query_result_as_list(query):
-#    if (query is not None):
-#        #results = ['COSI','MATH','HIST']
-#        print "Line 209: %s" %query
-#        results = db.allrows(query)
-#        return results
-#    else:
-#        return None
+def displayTokens(mytok,mytoklen):
+    idx=0
+    while (idx <mytoklen):
+        print "%d: ~~%s~~ Type is: '%s' Value is: ~%s~" %(idx, mytok[idx], mytok[idx].ttype, mytok[idx].value)
+        idx+=1
+    print " ----------------------------Finished printing the 'tokenized' query-----------------------"
 
-#Used for the group by clause and the select clause
-def find_attr_clause(clause,delim):
-#    print "line 94: Clause: --%s--"%clause
-    if (clause):
-        clause = myhelper.cleanValue(clause)
-        attr_list = []
-        splits = clause.split(delim) # Split the attributes based on the delimiter
+def myParser(mytok, mytoklen):
+    
+    queryobj = myqueryclauses.myqueryclauses()
+        
+    i=0
+    while(i <mytoklen):
 
-        for s in splits:
-            s = myhelper.cleanValue(s)
-            i = 0
-            table = ""
-            attr = ""
-            if (s.find(".") != -1):
-                while(i<len(s) and s[i] != '.'):
-                    table = table + s[i]
-                    i+=1
-                i+=1 # Go past the dot.
-            while (i<len(s)):
-                attr = attr + s[i]
+        if (mytok[i].is_whitespace()):      
+            i+=1
+        else:    
+            
+            if (str(mytok[i].ttype) == 'Token.Keyword.DML' and str(mytok[i].value) == "SELECT"):
+                i = incrementIfWhitespace(mytok[i+1], i)
+                mytoklist = []
+                foundAttr = False
+                while (i <mytoklen and foundAttr is False):
+                    (foundAttr, mytoklist) = findIdentifierListWithKeywords(mytok[i],mytoklist)
+                    if (foundAttr):
+                        i-=2
+                        break;
+                    i+=1# From where loop at line 53
+                queryobj.setSelectIdent((sqlparse.sql.IdentifierList(mytoklist)).get_identifiers())
+#                queryobj.setSelectIdent(sqlparse.sql.IdentifierList(mytoklist))
+#                queryclauses.getSelectIdent()
+            
+            elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "FROM"):
+                fromIdent =  findIdentifierList(mytok[i+2])
+                if (fromIdent is None): # Not found identifier list, have one table in from
+                    fromIdent = mytok[i+2]
+                else:
+                    i=i+2
+                queryobj.setFromIdent(fromIdent)
+#                queryclauses.getFromIdent()
+            
+            elif (isinstance(mytok[i], sql.Where)): # Found the where clause
+                queryobj.setWhereIdent((mytok[i]))
+#                queryclauses.getWhereIdent()
+            
+            elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "GROUP"):
+                if (str(mytok[i+2].ttype) == 'Token.Keyword' and str(mytok[i+2].value) == "BY"):
+                    i=i+2
+                    i = incrementIfWhitespace(mytok[i+1],i)
+                    
+                    groupbyIdent = findIdentifierList(mytok[i+1])
+#                    print groupbyIdent
+                    if (groupbyIdent is None): # Not found identifier list, have one group by attribute
+                        groupbyIdent = mytok[i+1]
+                    queryobj.setGroupbyIdent(groupbyIdent)
                 i+=1
-            tup = (table, attr)
-            attr_list.append(tup)
-#        print "line 115: Attr list --%s--" %attr_list    
-        return attr_list
-    else:
-        return False
-
-
-def find_where_clause(parsedList):
-    if (parsedList is None):
-        return False
             
-    i = 0
-    attr_list = ""
-    foundWhere = False
-    foundAttr = False
-    length = len(parsedList)
-    
-    for parsed in parsedList:
-        i += 1
-        if (str(parsed[0]) == 'Token.Keyword'):
-            if (str(parsed[1]) == 'WHERE'):
-                foundWhere = True
-            
-        if (foundWhere): #found the Where part of the query
-            while (i< length and foundAttr is False):
-                if(str(parsedList[i][0]) =='Token.Keyword'): 
-                    str_parsedList = str(parsedList[i][1])
-                    #Make sure valid where clause operators/keywords are included
-                    if (myhelper.isWhereClauseOperator(str_parsedList) or myhelper.isLogicalOperator(str_parsedList)):
-                        attr_list = attr_list + str_parsedList
-                    else:
-                        foundAttr = True
-                    i+=1
-                else:
-                    attr_list = attr_list + str(parsedList[i][1])
-                    i+=1
-            break;
-        if (foundAttr): #No need for loop to continue
-            break;
-            
-    #Set return values
-    if (foundWhere):
-        return myhelper.cleanValue(attr_list)
+            elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "ORDER"):
+                if (str(mytok[i+2].ttype) == 'Token.Keyword' and str(mytok[i+2].value) == "BY"):
+                    i=i+3#Go past order by
+                    mytoklist = []
+                    foundAttr = False
+                    while (i <mytoklen and foundAttr is False):
+                        (foundAttr, mytoklist) = findIdentifierListWithKeywords(mytok[i],mytoklist)
+                        if (foundAttr):
+                            i-=2
+                            break;
+                        i+=1# this is the where loop at line 94
+                    queryobj.setOrderbyIdent(sqlparse.sql.IdentifierList(mytoklist))
+#                    queryclauses.getOrderbyIdent()
+                i+=1
+                
+            elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "HAVING"):
+                i = incrementIfWhitespace(mytok[i+1],i)
+                mytoklist = []
+                foundAttr = False
+                while (i <mytoklen and foundAttr is False):
+                    (foundAttr, mytoklist) = findIdentifierListWithKeywords(mytok[i],mytoklist)
+                    if (foundAttr):
+                        i-=2
+                        break;
+                    i+=1# Closing where loop at line 218    
+                queryobj.setHavingIdent(sqlparse.sql.IdentifierList(mytoklist))
+#                queryclauses.getHavingIdent()
+            i+=1
+    return queryobj
+#    print " ----------------------------Finished parsing the user query--------------------------"
+
+def incrementIfWhitespace(tok, idx):
+    if ((tok).is_whitespace()):
+        return (idx+1)
+    return idx            
+
+# Checks to see if the token is an identifier List. If yes, it returns the identifiers else returns None
+def findIdentifierList(token):
+    if (isinstance(token,sql.IdentifierList)):
+        mytoklist = []
+        myidentlist = token
+        ident =  sql.IdentifierList.get_identifiers(myidentlist)
+#        for id in ident:
+#            mytoklist.append(id)
+#        print"TOkkkie"
+#        print mytoklist
+        return ident
     else:
-        print "Error: Couldn't find where clause in query"
-        return False
-
-def find_where_attr(clause):    
-    if (clause is None):
-        return False
-    clause = myhelper.cleanValue(clause)
-    
-    list = myhelper.split_logical_operators(clause)
-    return myhelper.split_parenthesis(list)
-
-
-def find_having_clause(parsedList):
-    if (parsedList is None):
-        return False
-            
-    i = 0
-    attr_list = ""
-    foundHaving = False
-    foundAttr = False
-    length = len(parsedList)
-    
-    for parsed in parsedList:
-        i += 1
-        if (str(parsed[0]) == 'Token.Keyword'):
-            if (str(parsed[1]) == 'HAVING'):
-                foundHaving = True
-            
-        if (foundHaving): #found the having part of the query
-            while (i< length and foundAttr is False):
-                if(str(parsedList[i][0]) =='Token.Keyword'): 
-                    str_parsedList = str(parsedList[i][1])
-                    #Make sure valid WHERE clause operators/keywords are included
-                    if (myhelper.isWhereClauseOperator(str_parsedList) or myhelper.isLogicalOperator(str_parsedList)):
-                        attr_list = attr_list + str_parsedList
-                    else:
-                        foundAttr = True
-                    i+=1
-                else:
-                    attr_list = attr_list + str(parsedList[i][1])
-                    i+=1
-            break;
-        if (foundAttr): #No need for loop to continue
-            break;
-            
-    #Set return values
-    if (foundHaving):
-        return myhelper.cleanValue(attr_list)
-    else:
-        print "Error: Couldn't find having clause in query"
-        return False
-
-def find_having_attr(clause):
-    if (clause is None):
-        return False
-    clause = myhelper.cleanValue(clause)
-    
-    list = myhelper.split_logical_operators(clause)
-    list = myhelper.split_parenthesis(list)
-    
-    result = myhelper.between_operator_attr(list)
-    if (result is not False): # Case1: The having clause has a between 
-        return result
-    else: #Case2: No between in the having clause
-        return list
-
-def find_orderby_clause(parsedList):
-    if (parsedList is None):
-        return False
-    
-    i = 0
-    attr_list = ""
-    foundGroup = False
-    foundAttr = False
-    length = len(parsedList)
-    
-    for parsed in parsedList:
-        i += 1
-        if (str(parsed[0]) == 'Token.Keyword'):
-            if (str(parsed[1]) == 'ORDER'):
-                foundGroup = True
-
-        if (foundGroup): #found the ORDER part of the clause
-            if (str(parsedList[i+1][0]) == 'Token.Keyword' and str(parsedList [i+1][1]) == 'BY'):
-                i+=2 #At this point, found ORDER BY tokens so moving past them
-                while (i < length and foundAttr is False):
-                    currentArg = str(parsedList[i][0])
-                    if (currentArg != 'Token.Keyword'):
-                        attr_list = attr_list + str(parsedList[i][1])
-                        i+=1
-                    elif (currentArg == 'Token.Keyword'):
-                        if(str(parsedList[i][1]) is 'DESC' or 'ASC'):
-                            attr_list = attr_list + str(parsedList[i][1])   
-                            i+=1
-                    elif(currentArg == 'Token.Punctuation'):
-                        attr_list = attr_list + str(parsedList[i][1])
-                        i+=1 
-                    else:
-                        foundAttr = True
-            break;
-        if (foundAttr): #No need for loop to continue
-            break;
-    
-    #Set return values
-    if (foundGroup):
-        return attr_list
-    else:
-        print "Error: Couldn't find order by clause in query"
-        return False
-
-# split the order by attributes on the comma. Return tuple of attributes
-def find_orderby_attr(clause):
-    if (clause is None):
-        return False
-    splits = clause.split(",") # Split the attributes
-    for s in splits:
-        s = s.strip()
-    return s
-
-
-def find_groupby_clause(parsedList):
-    if (parsedList is None):
-        return False
-    
-    i = 0
-    attr_list = ""
-    foundGroup = False
-    foundAttr = False
-    length = len(parsedList)
-    
-    for parsed in parsedList:
-        i += 1
-        if (str(parsed[0]) == 'Token.Keyword'):
-            if (str(parsed[1]) == 'GROUP'):
-                foundGroup = True
-
-        if (foundGroup): #found the group part of the clause
-            if (str(parsedList[i+1][0]) == 'Token.Keyword' and str(parsedList [i+1][1]) == 'BY'):
-                i+=2 #At this point, found GROUP BY tokens so moving past them
-                while (i < length and foundAttr is False):
-                    if (str(parsedList [i][0]) != 'Token.Keyword'):
-                        attr_list = attr_list + str(parsedList[i][1])
-                        i+=1
-                    else:
-                        foundAttr = True
-            break;
-        if (foundAttr): #No need for loop to continue
-            break;
-    
-    #Set return values
-    if (foundGroup):
-        return attr_list
-    else:
-        print "Error: Couldn't find group by clause in query"
-        return False
-
-
-def find_distinct_group_by_values (queryTables, grpByCols):
-    if (queryTables and grpByCols):
-        distinctResults = {}
-        for col in grpByCols:
-            column = col [1]
-            alias = col [0]
-            table = getTableNameForAlias (queryTables, alias)
-            if (table is None):
-                continue
-            tblCol = str(alias)+'.'+str(column)
-            query = 'SELECT DISTINCT '+ column + ' FROM '+ str(table)
-            results = db.allrows(query)
-            distinctResults [tblCol] = results
-        return distinctResults
-
-def find_select_columns (parsedList):
-    if (parsedList is None):
-        return False
-    
-    i = 0
-    attr_list = ""
-    foundSelect = False
-    foundAttr = False
-    length = len(parsedList)
-    
-    for parsed in parsedList:
-        i += 1
-        if (str(parsed[0]) == 'Token.Keyword.DML'):
-            if (str(parsed[1]) == 'SELECT'):
-                foundSelect = True
-
-        if (foundSelect): #found the group part of the clause
-            while (i < length and foundAttr is False):
-                if (str(parsedList [i][0]) != 'Token.Keyword'):
-                    attr_list = attr_list + str(parsedList[i][1])
-                    i+=1
-                elif (str(parsedList [i][0]) == 'Token.Keyword' and myhelper.isAggregate(str(parsedList [i][1]))):
-                    attr_list = attr_list + str(parsedList [i][1])+str(parsedList[i+1][1])
-                    i+=1
-                else:
-                    foundAttr = True
-            break;
-        if (foundAttr): #No need for loop to continue
-            break;
-    
-    #Set return values
-    if (foundSelect):
-        return attr_list
-    else:
-        return False
-
-def getTableNameForAlias (queryTables, tblAlias):
-    if (tblAlias is None) :
         return None
-    tblAlias = myhelper.cleanValue(tblAlias)
-    if (queryTables and len(tblAlias) > 0):
-        for alias in queryTables.iterkeys():
-            if (alias == str(tblAlias)):
-                return str(queryTables[alias])
-    return None
 
-def find_tables (parsedList):
-    if (parsedList is None):
-        return False
-    
-    i = 0
-    foundFrom = False
+# To account for aggregates, logical/comparison operators and other such keywords.
+# Used for Select and Order by Clauses 
+def findIdentifierListWithKeywords(token,mytoklist):
     foundAttr = False
-    length = len(parsedList)
-    attr_list = []
-    for parsed in parsedList:
-        i += 1
-        if (str(parsed[0]) == 'Token.Keyword'):
-            if (str(parsed[1]) == 'FROM'):
-                foundFrom = True
-
-        if (foundFrom): #found the from part of the sql
-            i+=1 #At this point, found FROM clause so moving past them
-            while (i < length and foundAttr is False):
-                if (str(parsedList [i][0]) != 'Token.Keyword'):
-                    val = myhelper.cleanValue (str(parsedList[i][1]))
-                    if (val is not None):
-                        attr_list.append(val)
-                    i+=1
-                elif (str(parsedList [i][0]) == 'Token.Keyword' and str(parsedList [i][1]) == 'JOIN'): # Straight forward joins
-                    val = myhelper.cleanValue(str(parsedList[i+1][1]))
-                    if (val is not None):
-                        attr_list.append(val)
-                    i+=1
-                elif (str(parsedList [i][0]) == 'Token.Keyword' and str(parsedList [i+2][0]) == 'Token.Keyword' and str(parsedList [i+2][1]) == 'JOIN'): # joins like left, right, natural etc
-                    val = myhelper.cleanValue(str(parsedList[i+3][1]))
-                    if (val is not None):
-                        attr_list.append(val)
-                    i+=1
-                else:
-                    foundAttr = True
-            break;
-        if (foundAttr): #No need for loop to continue
-            break;
-    
-    #Set return values
-    if (foundFrom and attr_list):
-        i = 0
-        for attr in attr_list:
-            if (attr == ','):
-                del (attr_list[i])
-            i += 1
-        tableMap = {}
-        i = 0
-        for attr in attr_list:
-            if (len (attr_list) > i+1):
-                tableMap [attr_list[i+1]] = attr_list[i]
-            i +=2
-
-        return tableMap
+    curr = token
+    if (curr.ttype is None):
+        mytoklist.append(curr)
+    elif (curr.ttype is Token.Keyword):
+        if (myhelper.isAggregate(curr)):
+            mytoklist.append(curr)
+        elif (myhelper.isLogicalOperator(curr)):
+            mytoklist.append(curr)
+        elif (myhelper.isOrderbyOperator(curr)):
+            mytoklist.append(curr)
+        else:
+            foundAttr = True
+    elif (curr.ttype is Token.Punctuation):
+        mytoklist.append(curr)
     else:
-        print "Error: Couldn't parse the from clause in query"
-        return False
+        mytoklist.append(curr)
+    return (foundAttr, mytoklist)
 
+def parseIdentifierList(attributes):
+    print attributes
+    print attributes[0].get_real_name()
+    print attributes[0].get_alias()
 
-
-
+if __name__ == "__main__":
+    
+    #Step 1: Get query from user
+#    userInput = getUserInput()
+    userInput = ("SELECT d.name, AVG (e.salary) "
+              " FROM employee e, department d "
+              " WHERE e.dept_id = d.id "
+              " GROUP BY d.name, e.id ")
+    
+    userInput = ("SELECT d.name, AVG (e.salary) "
+                 " FROM employee e, department d ")
+    #Step 2: Tokenize the query give by the user
+    (mytok, mytoklen) = tokenizeUserInput (userInput)
+    
+    #Step 3: Display the tokens in the user query
+#    displayTokens(mytok,mytoklen)
+    
+    #Step 4: Parse the user query using the tokens created
+    queryclauses = myParser(mytok, mytoklen)
+    
+    #Step 5: Display the clauses in the user query
+    queryclauses.dispay()   
+    selectid = queryclauses.getSelectIdent() 
+    print myqueryconstructor.checkIfList(selectid)
+#    
+##    ----------------------------------------------------------------------------------------------------------
+#    
+#    #Step 1: find the columns in group by clause
+#    groupbyIdent = queryclauses.getGroupbyIdent()
+#    
+##    if (isinstance(groupbyIdent, sql.Identifier)):#d.name
+##        print "I have a group by identifier"
+##    else: #d.name, e.id 
+##        print "I have a group by list"
+#
+#    #Step 2: find all the tables in the from clause
+#    fromIdent = queryclauses.getFromIdent()
+##    if (isinstance(fromIdent, sql.Identifier)):#d.name
+##        print "I have a from identifier"
+##    else: #d.name, e.id 
+##        print "I have a from list"
+#    
+#    # Step 3: Find the distinct values of the group-by attribute

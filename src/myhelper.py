@@ -39,5 +39,12 @@ def isLogicalOperator(tok):
                 return True
     return False
 
+def isOrderbyOperator(tok):
+    orderbyOperators = ["ASC", "DESC"]
+    if (tok is not None):
+        for key in orderbyOperators:
+            if (tok.match(Keyword, key)):
+                return True
+    return False
 
 
