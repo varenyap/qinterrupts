@@ -21,7 +21,10 @@ def checkIfList(ident):
             return False
     return True   
 
-def findDistinctGroupbyValues(groupbyIdent,fromIdent):
+def findDistinctGroupbyValues(queryobj):
+    groupbyIdent = queryobj.getGroupbyIdent()    
+    fromIdent = queryobj.getFromIdent()
+    
     if ((groupbyIdent and fromIdent) is not None):        
         if (checkIfList(groupbyIdent)):
             query = " SELECT DISTINCT " 
@@ -71,41 +74,67 @@ def findTablenameFromAlias(fromIdent,alias):
                 return fid.get_real_name()
     return False
 
-def constructSubSelects (selectIdent, distinctGroupbyValues, fromIdent, whereIdent):
-    if (selectIdent, distinctGroupbyValues, fromIdent, whereIdent):
+def constructSubSelects (queryobj, distinctGroupbyValues):
+    if (queryobj, distinctGroupbyValues):
+        
         print " Constructing sub selects"
+        groupbyIdent = queryobj.getGroupbyIdent()    
+        fromIdent = queryobj.getFromIdent()
+        selectIdent = queryobj.getSelectIdent()
+        whereIdent = queryobj.getWhereIdent()
         print selectIdent
-        print checkIfList(selectIdent)
         
-        for sid in selectIdent:
-            if(myhelper.isAggregate(sid)):
-                print "I have an aggregate"
-                print sid
+        ## NEED to have all the select attributes except the ones already in group by
+        colSelect = " "
+        aggSelect =" " 
+        addWhere = " "   
+        if(queryobj.getSelectContainsAggregate()):
+            lastAgg = ""
+            for attr in selectIdent:
+                if(not myhelper.isAggregate(attr)):
+                    if(lastAgg is not ""):
+                        aggSelect= aggSelect + str(attr) + " AS " + lastAgg+ "_"+ myhelper.remAggregate(str(attr))  + ", "
+                        addWhere += lastAgg+ "_"+ myhelper.remAggregate(str(attr)) + " IS NOT NULL AND "
+                        lastAgg = ""
+                    else:
+                        aggSelect= aggSelect + str(attr) + " AS " + myhelper.remAggregate(str(attr))  + ", "
+                else:
+                    lastAgg = str(attr).lower()
+                    aggSelect= aggSelect + str(attr)
+            aggSelect= aggSelect.rstrip(", ")
+            addWhere = addWhere.rstrip(' AND')            
+            print aggSelect
+            print addWhere
+        else:
+            print "No aggs"
+            for attr in selectIdent:
+                print attr
+                colSelect+=  str(attr) + " AS " + myhelper.remAggregate(str(attr))  + ", "
+            colSelect = colSelect.rstrip(",")
+            print colSelect
+
+        return
         
         
-#        for dgbv in distinctGroupbyValues:
-#            select = " SELECT "
-#            query = " SELECT '" + dgbv + "'::Text" 
-#            print query
+        #Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
+        for dgbv in distinctGroupbyValues:
+            select = " SELECT "
+            query = " SELECT '" + dgbv + "'::Text" 
+            print query
 
 
 
 if __name__ == "__main__":
-    userInput = ("SELECT d.name, AVG (e.salary) , MAX(d.name)"
+    userInput = ("SELECT d.name, e.id"
               " FROM employee e, department d"
               " WHERE e.dept_id = d.id"
               " GROUP BY d.name")
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)
-    queryclauses = myparser.myParser(mytok, mytoklen)
+    queryobj = myparser.myParser(mytok, mytoklen)
 #    queryclauses.dispay()
-    groupbyIdent = queryclauses.getGroupbyIdent()    
-    fromIdent = queryclauses.getFromIdent()
-    selectIdent = queryclauses.getSelectIdent()
-    whereIdent = queryclauses.getWhereIdent()
-    
-    distinctGroupbyValues = findDistinctGroupbyValues(groupbyIdent, fromIdent)
+    distinctGroupbyValues = findDistinctGroupbyValues(queryobj)
     
     # dictionary having the temp table as key and the query for that table as value 
-    subSelects = constructSubSelects (selectIdent, distinctGroupbyValues, fromIdent, whereIdent)
+    subSelects = constructSubSelects (queryobj, distinctGroupbyValues)

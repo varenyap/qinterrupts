@@ -23,6 +23,12 @@ def isAggregate (tok):
                 return True
     return False
 
+def remAggregate (input):
+    input = input.replace("(",'')
+    input = input.replace(")",'')
+    input = input.replace(".",'_')
+    return input
+
 def isWhereClauseOperator(tok):
     whereClauseOperators = ["=", "<>", "!=", ">", "<", ">=", "<=", "BETWEEN", "LIKE", "IN", "IS NULL"]
     if (tok is not None):
@@ -47,4 +53,9 @@ def isOrderbyOperator(tok):
                 return True
     return False
 
+def removeListDuplicates(seq): 
+    # order preserving
+    noDupes = []
+    [noDupes.append(i) for i in seq if not noDupes.count(i)]
+    return noDupes
 

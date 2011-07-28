@@ -37,6 +37,7 @@ if __name__ == "__main__":
     
     #Step 4: 
     # dictionary having the temp table as key and the query for that table as value
-    subSelects = myqueryconstructor.constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,where_attr_list)
+#    subSelects = myqueryconstructor.constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,where_attr_list)
+    
     
 

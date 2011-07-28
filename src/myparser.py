@@ -62,15 +62,25 @@ def myParser(mytok, mytoklen):
             
             if (str(mytok[i].ttype) == 'Token.Keyword.DML' and str(mytok[i].value) == "SELECT"):
                 i = incrementIfWhitespace(mytok[i+1], i)
-                mytoklist = []
-                foundAttr = False
-                while (i <mytoklen and foundAttr is False):
-                    (foundAttr, mytoklist) = findIdentifierListWithKeywords(mytok[i],mytoklist)
-                    if (foundAttr):
-                        i-=2
-                        break;
-                    i+=1# From where loop at line 53
-                queryobj.setSelectIdent((sqlparse.sql.IdentifierList(mytoklist)).get_identifiers())
+                
+                selectIdent = findIdentifierList(mytok[i+1])
+                if (selectIdent is None):
+                    mytoklist = []
+                    foundAttr = False
+                    foundAggregate = False
+                    
+                    while (i <mytoklen and foundAttr is False):
+                        (foundAttr, mytoklist,foundAggregate) = findIdentifierListWithKeywords(mytok[i],mytoklist)
+                        if (foundAggregate):
+                            queryobj.setSelectContainsAggregate(foundAggregate)
+                        if (foundAttr):
+                            i-=2
+                            break;
+                        i+=1# From where loop at line 53
+                    selectIdent = (sqlparse.sql.IdentifierList(mytoklist)).get_identifiers()
+                
+                
+                queryobj.setSelectIdent(selectIdent)
 #                queryobj.setSelectIdent(sqlparse.sql.IdentifierList(mytoklist))
 #                queryclauses.getSelectIdent()
             
@@ -96,6 +106,7 @@ def myParser(mytok, mytoklen):
 #                    print groupbyIdent
                     if (groupbyIdent is None): # Not found identifier list, have one group by attribute
                         groupbyIdent = mytok[i+1]
+                    
                     queryobj.setGroupbyIdent(groupbyIdent)
                 i+=1
             
@@ -154,11 +165,15 @@ def findIdentifierList(token):
 def findIdentifierListWithKeywords(token,mytoklist):
     foundAttr = False
     curr = token
+    foundAggregate = False
+    print "TOken: %s" %token
     if (curr.ttype is None):
+        print "Im on the None: %s"%curr
         mytoklist.append(curr)
     elif (curr.ttype is Token.Keyword):
         if (myhelper.isAggregate(curr)):
             mytoklist.append(curr)
+            foundAggregate = True
         elif (myhelper.isLogicalOperator(curr)):
             mytoklist.append(curr)
         elif (myhelper.isOrderbyOperator(curr)):
@@ -168,9 +183,10 @@ def findIdentifierListWithKeywords(token,mytoklist):
     elif (curr.ttype is Token.Punctuation):
         mytoklist.append(curr)
     else:
+        print "Im on the else: %s"%curr
         mytoklist.append(curr)
-    return (foundAttr, mytoklist)
-
+    return (foundAttr, mytoklist, foundAggregate)
+    
 def parseIdentifierList(attributes):
     print attributes
     print attributes[0].get_real_name()
@@ -185,13 +201,12 @@ if __name__ == "__main__":
               " WHERE e.dept_id = d.id "
               " GROUP BY d.name, e.id ")
     
-    userInput = ("SELECT d.name, AVG (e.salary) "
-                 " FROM employee e, department d ")
+    userInput = ("SELECT d.name ")
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = tokenizeUserInput (userInput)
     
     #Step 3: Display the tokens in the user query
-#    displayTokens(mytok,mytoklen)
+    displayTokens(mytok,mytoklen)
     
     #Step 4: Parse the user query using the tokens created
     queryclauses = myParser(mytok, mytoklen)
@@ -199,7 +214,8 @@ if __name__ == "__main__":
     #Step 5: Display the clauses in the user query
     queryclauses.dispay()   
     selectid = queryclauses.getSelectIdent() 
-    print myqueryconstructor.checkIfList(selectid)
+#    print myqueryconstructor.checkIfList(selectid)
+    print queryclauses.getSelectContainsAggregate()
 #    
 ##    ----------------------------------------------------------------------------------------------------------
 #    
