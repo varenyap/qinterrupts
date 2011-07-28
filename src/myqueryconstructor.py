@@ -82,51 +82,118 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         fromIdent = queryobj.getFromIdent()
         selectIdent = queryobj.getSelectIdent()
         whereIdent = queryobj.getWhereIdent()
-        print selectIdent
         
-        ## NEED to have all the select attributes except the ones already in group by
-        colSelect = " "
-        aggSelect =" " 
-        addWhere = " "   
-        if(queryobj.getSelectContainsAggregate()):
-            lastAgg = ""
-            for attr in selectIdent:
-                if(not myhelper.isAggregate(attr)):
-                    if(lastAgg is not ""):
-                        aggSelect= aggSelect + str(attr) + " AS " + lastAgg+ "_"+ myhelper.remAggregate(str(attr))  + ", "
-                        addWhere += lastAgg+ "_"+ myhelper.remAggregate(str(attr)) + " IS NOT NULL AND "
-                        lastAgg = ""
+        fromClause = ' FROM '
+        orgWhereClause = " " + str(whereIdent)
+        
+        for fid in fromIdent:
+            fromClause += str(fid) + " , "
+        fromClause = fromClause.rstrip(", ")
+        
+        
+        #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
+        
+        queryTableMap = {} # to map the query executed and the new table created.
+        queryList = []
+        distinctValues = len(distinctGroupbyValues)
+        i = 0
+        while (i < distinctValues):
+            selectClause = ' SELECT '
+            addBigWhere = " WHERE "
+            tempTable =""
+            if (queryobj.getSelectContainsAggregate()):
+                lastAgg = ""
+                for attr in selectIdent:
+                    if(not myhelper.isAggregate(attr)):
+                        if(lastAgg is not ""):
+                            selectClause = selectClause + str(attr) + " AS " + lastAgg+ "_"+ myhelper.remAggregate(str(attr))  + " , "
+                            addBigWhere += lastAgg+ "_"+ myhelper.remAggregate(str(attr)) + " IS NOT NULL AND "
+                            lastAgg = ""
+                        else:
+                            selectClause = selectClause + "'"+ str(distinctGroupbyValues[i]) + "'::Text" +  " AS " + myhelper.remAggregate(str(attr))  + " , "
+                            whereClause = orgWhereClause + " AND " + str(attr) + " = '"+ str(distinctGroupbyValues[i]) + "'"
+                            tempTable = myhelper.remAggregate(str(attr)) +"_" + str(distinctGroupbyValues[i])
+                            selectInto = " INTO " + tempTable
+                            
                     else:
-                        aggSelect= aggSelect + str(attr) + " AS " + myhelper.remAggregate(str(attr))  + ", "
-                else:
-                    lastAgg = str(attr).lower()
-                    aggSelect= aggSelect + str(attr)
-            aggSelect= aggSelect.rstrip(", ")
-            addWhere = addWhere.rstrip(' AND')            
-            print aggSelect
-            print addWhere
-        else:
-            print "No aggs"
-            for attr in selectIdent:
-                print attr
-                colSelect+=  str(attr) + " AS " + myhelper.remAggregate(str(attr))  + ", "
-            colSelect = colSelect.rstrip(",")
-            print colSelect
+                        lastAgg = str(attr).lower()
+                        selectClause = selectClause + str(attr)
 
-        return
+                selectClause = selectClause.rstrip(", ")
+                addBigWhere = addBigWhere.rstrip(' AND')
+                
+                subquery = selectClause + selectInto + fromClause + whereClause
+                print "subquery: %s" %subquery
+                queryList.append(subquery)
+                queryTableMap[tempTable] = subquery
+            else:    
+                for attr in selectIdent:
+                    selectClause = ' SELECT '
+                    selectClause+= "'"+ str(distinctGroupbyValues[i]) + "'::Text"  + " AS " + myhelper.remAggregate(str(attr))  + " , "
+                
+                selectClause = selectClause.rstrip(", ")
+                tempTable = myhelper.remAggregate(str(attr)) +"_" + str(distinctGroupbyValues[i])
+                selectInto = " INTO " + tempTable
+                
+                subquery = selectClause + selectInto + fromClause + orgWhereClause
+                print "subquery: %s" %subquery
+                queryList.append(subquery)
+                queryTableMap[tempTable] = subquery
+            i+=1
+        
+        retVal = []
+        retVal.append(queryTableMap)
+        retVal.append(queryList)
+        retVal.append(addBigWhere)      
+        return retVal
+
+
+def constructBigQuery(subSelects):
+    if (subSelects):
+        queryTableMap = subSelects [0]
+        addBigWhere = subSelects [2]
+        queryList = subSelects[1]
+        bigQuery = ""
+        union = " UNION "
+        
+        for item in queryTableMap.iteritems():
+            bigQuery += "SELECT * FROM "+ str(item[0]) + addBigWhere + union
+        bigQuery = bigQuery[:-6]
+        writeToFile (queryList, bigQuery, queryTableMap)
+
+#Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
+def writeToFile (queryList,bigQuery, queryTableMap):
+    triplequote = (""" "" """).strip() + (""" " """).strip()
+
+    filename = "scripts.py"
+    FILE = open(filename,"w")
+    if (not queryList or len (bigQuery) == 0):
+        FILE.write('Unknown problem with queries')
+    else:   
+        FILE.write('import db_connection\n\n')
+        FILE.write('db = db_connection.Db_connection()\n\n')
+        FILE.write('db.clear_database() # reset the database on each run.\n\n')
         
         
-        #Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
-        for dgbv in distinctGroupbyValues:
-            select = " SELECT "
-            query = " SELECT '" + dgbv + "'::Text" 
-            print query
-
-
+        # Drop if exists the temp tables we are about to create
+        FILE.write('# If the temp tables we are about to create exist, drop them!\n')
+        for tempTable,query in queryTableMap.iteritems():
+            drop = """db.make_query(""" + triplequote + "drop table if exists " + str(tempTable) + " cascade;" +triplequote + """)\n"""
+            FILE.write(drop)        
+        
+        FILE.write('\n# Make a db call and run the sub queries that will collectively evaluate to the main query result\n')
+        for query in queryList:
+            query = """db.make_query(""" + triplequote + query + triplequote + """)\n"""
+            FILE.write(query)        
+        
+        FILE.write('\n# The query that combines the results of small queries\n')
+        FILE.write('bigQuery = '+triplequote + bigQuery+ triplequote + '\n\n')
+        FILE.write('db.make_pquery(bigQuery)\n')
+    FILE.close()
 
 if __name__ == "__main__":
-    userInput = ("SELECT d.name, e.id"
-              " FROM employee e, department d"
+    userInput = (" SELECT d.name, AVG(e.salary)"
+              " FROM employee e, department d "
               " WHERE e.dept_id = d.id"
               " GROUP BY d.name")
     
@@ -138,3 +205,6 @@ if __name__ == "__main__":
     
     # dictionary having the temp table as key and the query for that table as value 
     subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
+    print "\n\n\n\n\n\n\n"
+    constructBigQuery(subSelects)
+    

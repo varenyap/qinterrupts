@@ -11,7 +11,7 @@ if __name__ == "__main__":
     userInput = ("SELECT d.name, AVG (e.salary) "
               " FROM employee e, department d"
               " WHERE e.dept_id = d.id"
-              " GROUP BY d.name, e.id")
+              " GROUP BY d.name")
     
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
@@ -20,24 +20,31 @@ if __name__ == "__main__":
 #    displayTokens(mytok,mytoklen)
     
     #Step 4: Parse the user query using the tokens created
-    queryclauses = myparser.myParser(mytok, mytoklen)
+    queryclausesobj = myparser.myParser(mytok, mytoklen)
     
     #Step 5: Display the clauses in the user query
-    queryclauses.dispay()
+    queryclausesobj.dispay()
     #############################################################################################    
 
     #Step 1: find the columns in group by clause
-    groupbyIdent = queryclauses.getGroupbyIdent()
+    groupbyIdent = queryclausesobj.getGroupbyIdent()
     
     #Step 2: find all the tables in the from clause
-    fromIdent = queryclauses.getFromIdent()
+    fromIdent = queryclausesobj.getFromIdent()
 
     # Step 3: Find the distinct values of the group-by attribute
-    distinctGroupbyValues = myqueryconstructor.findDistinctGroupbyValues(groupbyIdent, fromIdent)
+    distinctGroupbyValues = myqueryconstructor.findDistinctGroupbyValues(queryclausesobj)
     
     #Step 4: 
     # dictionary having the temp table as key and the query for that table as value
-#    subSelects = myqueryconstructor.constructSubSelects (selAttributes, distinctGrouupVals, tblsInQry,where_attr_list)
+    subSelects = myqueryconstructor.constructSubSelects (queryclausesobj, distinctGroupbyValues)
+    
+    myqueryconstructor.constructBigQuery(subSelects)
+
+
+
+
+
     
     
 

@@ -166,9 +166,9 @@ def findIdentifierListWithKeywords(token,mytoklist):
     foundAttr = False
     curr = token
     foundAggregate = False
-    print "TOken: %s" %token
+#    print "TOken: %s" %token
     if (curr.ttype is None):
-        print "Im on the None: %s"%curr
+#        print "Im on the None: %s"%curr
         mytoklist.append(curr)
     elif (curr.ttype is Token.Keyword):
         if (myhelper.isAggregate(curr)):
@@ -183,7 +183,7 @@ def findIdentifierListWithKeywords(token,mytoklist):
     elif (curr.ttype is Token.Punctuation):
         mytoklist.append(curr)
     else:
-        print "Im on the else: %s"%curr
+#        print "Im on the else: %s"%curr
         mytoklist.append(curr)
     return (foundAttr, mytoklist, foundAggregate)
     
