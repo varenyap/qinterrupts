@@ -8,42 +8,66 @@ db = db_connection.Db_connection()
 
 def getResultSetAsList(query):
     if (query is not None):
-        #results = ['COSI','MATH','HIST']
-        resultList = []
-        results = db.allrows(query)
-        for r in results:
-            resultList.append(r[0])
-        return resultList
+        results = db.allrows(query)    
+        return results
     return None
 
 def checkIfList(ident):
     if (isinstance(ident, sql.Identifier)):#d.name
             return False
-    return True   
+    return True
+
+def getGroupbyDistinctList(queryTable,groupbyIdent):
+    if (queryTable is not None):
+        groupbyattr = [] # contains string group by attribute names
+        if (checkIfList(groupbyIdent)):
+            for id in groupbyIdent:
+                groupbyattr.append(str(id))
+        else:
+            groupbyattr.append(str(groupbyIdent))
+        
+        returnList = {}
+        i = 0
+        for query in queryTable:
+            results = db.allrows(query)    
+            vals = []
+            for rs in results:
+                vals.append(str(rs[0]))
+            returnList[groupbyattr[i]] = vals
+                
+            i+=1
+#        print returnList
+        return returnList
+    return None
 
 def findDistinctGroupbyValues(queryobj):
+
     groupbyIdent = queryobj.getGroupbyIdent()    
     fromIdent = queryobj.getFromIdent()
     
-    if ((groupbyIdent and fromIdent) is not None):        
+#    print fromIdent
+    queryTable =[]
+    if ((groupbyIdent and fromIdent) is not None):
         if (checkIfList(groupbyIdent)):
-            query = " SELECT DISTINCT " 
             for gid in groupbyIdent:
                 gAlias = gid.get_parent_name()
-                query += str(gid) + ", "
-            query = query.strip(", ")
-            query+= " FROM "
-            if (checkIfList(fromIdent)): # have a from list and group-by list
-                for fid in fromIdent:
-                    for gid in groupbyIdent:
-                        gAlias = gid.get_parent_name()
-                        if (fid.get_alias() is gAlias):
-                            query += str(fid) + ", "
-                query = query.strip(", ")
-            else:
-                query += str(fromIdent)
-            
-        else: #dont have a group-by list"
+                query = " SELECT DISTINCT " + str(gid) + " FROM "
+                if (checkIfList(fromIdent)): # have a from list and group-by list
+                    for fid in fromIdent:
+#                        print "fid:%s and gAlias:%s" %(fid.get_alias(),gAlias)
+                        
+                        if (str(fid.get_alias()) == str(gAlias)):
+#                            print "got match"
+#                            print "fid.get_alias():%s and gAlias(): %s" %(fid.get_alias(),gAlias)
+                            if(str(fid) not in query):
+                                query += str(fid) + ", "
+                    query = query.strip(", ")
+    
+                else:
+                    query += str(fromIdent)
+#                print query 
+                queryTable.append(query)
+        else:#dont have a group-by list"
             gAlias = groupbyIdent.get_parent_name()
             if (checkIfList(fromIdent)):
                 for fid in fromIdent:
@@ -51,11 +75,12 @@ def findDistinctGroupbyValues(queryobj):
                         query = " SELECT DISTINCT " + str(groupbyIdent) + " FROM " + str(fid)
             else:
                 query = " SELECT DISTINCT " + str(groupbyIdent) + " FROM " + str(fromIdent)
-        
-        result = getResultSetAsList(query)
-#        print query
-#        print result
-        return result
+            
+            queryTable.append(query)
+        resultset= None
+        resultset = getGroupbyDistinctList(queryTable,groupbyIdent)
+#        print resultset
+        return resultset
     
 
 def findTablenameFromAlias(fromIdent,alias):    
@@ -90,62 +115,76 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
             fromClause += str(fid) + " , "
         fromClause = fromClause.rstrip(", ")
         
+        groupbyattr = [] # contains string group by attribute names
+        if (checkIfList(groupbyIdent)):
+            for id in groupbyIdent:
+                groupbyattr.append(str(id))
+        else:
+            groupbyattr.append(str(groupbyIdent))
+        numGroupbyAttr = len(groupbyattr) # Number of group by attributes
+        
+        print groupbyattr
+        print numGroupbyAttr
+        print "hey"
+        print len(selectIdent)        
         
         #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
-        
         queryTableMap = {} # to map the query executed and the new table created.
-        queryList = []
-        distinctValues = len(distinctGroupbyValues)
-        i = 0
-        while (i < distinctValues):
-            selectClause = ' SELECT '
-            addBigWhere = " WHERE "
-            tempTable =""
-            if (queryobj.getSelectContainsAggregate()):
-                lastAgg = ""
-                for attr in selectIdent:
-                    if(not myhelper.isAggregate(attr)):
-                        if(lastAgg is not ""):
-                            selectClause = selectClause + str(attr) + " AS " + lastAgg+ "_"+ myhelper.remAggregate(str(attr))  + " , "
-                            addBigWhere += lastAgg+ "_"+ myhelper.remAggregate(str(attr)) + " IS NOT NULL AND "
-                            lastAgg = ""
-                        else:
-                            selectClause = selectClause + "'"+ str(distinctGroupbyValues[i]) + "'::Text" +  " AS " + myhelper.remAggregate(str(attr))  + " , "
-                            whereClause = orgWhereClause + " AND " + str(attr) + " = '"+ str(distinctGroupbyValues[i]) + "'"
-                            tempTable = myhelper.remAggregate(str(attr)) +"_" + str(distinctGroupbyValues[i])
-                            selectInto = " INTO " + tempTable
-                            
-                    else:
-                        lastAgg = str(attr).lower()
-                        selectClause = selectClause + str(attr)
-
-                selectClause = selectClause.rstrip(", ")
-                addBigWhere = addBigWhere.rstrip(' AND')
-                
-                subquery = selectClause + selectInto + fromClause + whereClause
-                print "subquery: %s" %subquery
-                queryList.append(subquery)
-                queryTableMap[tempTable] = subquery
-            else:    
-                for attr in selectIdent:
-                    selectClause = ' SELECT '
-                    selectClause+= "'"+ str(distinctGroupbyValues[i]) + "'::Text"  + " AS " + myhelper.remAggregate(str(attr))  + " , "
-                
-                selectClause = selectClause.rstrip(", ")
-                tempTable = myhelper.remAggregate(str(attr)) +"_" + str(distinctGroupbyValues[i])
-                selectInto = " INTO " + tempTable
-                
-                subquery = selectClause + selectInto + fromClause + orgWhereClause
-                print "subquery: %s" %subquery
-                queryList.append(subquery)
-                queryTableMap[tempTable] = subquery
-            i+=1
+        queryList = {}
         
+        print distinctGroupbyValues
+#        print len(distinctGroupbyValues["e.salary"])
+        lenDistinctValues = []
+        max = 1
+        iterations = 0
+        firstSelectAttr = None
+        lenSeen = []
+        for item in selectIdent:
+            if (iterations == 0):
+                firstSelectAttr = item
+                numRows = len(distinctGroupbyValues[str(item)])
+                iterations+=1
+            else:
+                currLength = len(distinctGroupbyValues[str(item)])
+                if (currLength not in lenSeen):
+                    lenSeen.append(currLength)
+                    max = max * currLength
+            
+         
+        print max
+        numRows = max * numRows
+        
+        for sid in selectIdent:
+            i=0
+            iterations = 0
+            while (iterations <numRows): # Max combinations possible.
+                currLength = len(distinctGroupbyValues[str(sid)])
+                numItems = currLength
+                while (numItems > 0):
+                    if (iterations in queryList):
+                        query = queryList[iterations]
+                    else:
+                        query = " SELECT "
+                    query+= "'"+ str(distinctGroupbyValues[str(sid)][numItems-1]) + "'::Text" + " AS " + myhelper.remAggregate(str(sid)) + " , "
+                    numItems-=1
+                    queryList[iterations] = query
+                    iterations+=1                
+                i+=1
+            
+        print "Outof loope"
+
+        for k,v in queryList.iteritems():
+            print v
+        
+        
+        
+        print "returning"
         retVal = []
-        retVal.append(queryTableMap)
-        retVal.append(queryList)
-        retVal.append(addBigWhere)      
+#        retVal.append(queryTableMap)
+#        retVal.append(queryList)
+#        retVal.append(addBigWhere)      
         return retVal
+
 
 
 def constructBigQuery(subSelects):
@@ -192,10 +231,10 @@ def writeToFile (queryList,bigQuery, queryTableMap):
     FILE.close()
 
 if __name__ == "__main__":
-    userInput = (" SELECT d.name, AVG(e.salary)"
-              " FROM employee e, department d "
-              " WHERE e.dept_id = d.id"
-              " GROUP BY d.name")
+    userInput = (" SELECT d.id, es.skill, e.id "
+              " FROM department d, employee_skill es,employee e "
+              " WHERE e.dept_id = d.id "
+              " GROUP BY d.id, es.skill,e.id ")
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)
@@ -205,6 +244,6 @@ if __name__ == "__main__":
     
     # dictionary having the temp table as key and the query for that table as value 
     subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
-    print "\n\n\n\n\n\n\n"
-    constructBigQuery(subSelects)
-    
+#    print "\n\n\n\n\n\n\n"
+#    constructBigQuery(subSelects)
+#    

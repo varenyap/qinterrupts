@@ -29,17 +29,18 @@ if __name__ == "__main__":
     #Step 1: find the columns in group by clause
     groupbyIdent = queryclausesobj.getGroupbyIdent()
     
-    #Step 2: find all the tables in the from clause
-    fromIdent = queryclausesobj.getFromIdent()
-
-    # Step 3: Find the distinct values of the group-by attribute
-    distinctGroupbyValues = myqueryconstructor.findDistinctGroupbyValues(queryclausesobj)
-    
-    #Step 4: 
-    # dictionary having the temp table as key and the query for that table as value
-    subSelects = myqueryconstructor.constructSubSelects (queryclausesobj, distinctGroupbyValues)
-    
-    myqueryconstructor.constructBigQuery(subSelects)
+#    
+#    #Step 2: find all the tables in the from clause
+#    fromIdent = queryclausesobj.getFromIdent()
+#
+#    # Step 3: Find the distinct values of the group-by attribute
+#    distinctGroupbyValues = myqueryconstructor.findDistinctGroupbyValues(queryclausesobj)
+#    
+#    #Step 4: 
+#    # dictionary having the temp table as key and the query for that table as value
+#    subSelects = myqueryconstructor.constructSubSelects (queryclausesobj, distinctGroupbyValues)
+#    
+#    myqueryconstructor.constructBigQuery(subSelects)
 
 
 
