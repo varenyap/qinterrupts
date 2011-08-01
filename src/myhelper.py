@@ -59,3 +59,49 @@ def removeListDuplicates(seq):
     [noDupes.append(i) for i in seq if not noDupes.count(i)]
     return noDupes
 
+def findSelectClauseWithoutAggregates(selectIdent):
+    
+    print "select clause without aggregates: %s" %selectIdent
+    selectWithoutAggregates = []
+    for sid in selectIdent:
+        if (not isAggregate(sid)):
+#            print "not an aggregate: %s " %sid
+            if (not "(" in str(sid)):
+                selectWithoutAggregates.append(sid)
+#        else:
+#            print "found aggregate: %s" %sid
+            
+#    print selectWithoutAggregates
+    return selectWithoutAggregates
+
+def findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues):
+#    print "find groupby Rows"
+#    print distinctGroupbyValues
+#    print selectIdentWithoutAggregates
+    max = 1
+    iterations = 0
+    lenSeen = []
+    numRows = 1
+    if selectIdentWithoutAggregates is None:
+        print "select has only aggregates"
+            
+    else:
+        for item in selectIdentWithoutAggregates:
+            if (iterations == 0):
+                numRows = len(distinctGroupbyValues[str(item)])
+                iterations+=1
+            else:
+                currLength = len(distinctGroupbyValues[str(item)])
+                if (currLength not in lenSeen):
+                    lenSeen.append(currLength)
+                    max = max * currLength
+    #    print max
+        numRows = max * numRows
+        print numRows
+    return numRows
+    
+    
+    
+    
+    
+    

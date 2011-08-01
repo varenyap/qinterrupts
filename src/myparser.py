@@ -4,9 +4,9 @@
 # components such that the attributes for each clause are returned in a
 # read-able format.
 # For each clause, returns an identifier, or an identifier list.
-# Handles the following keywords: SELECT, FROM, WHERE, GROUP BY, ORDER BY and
-# all aggregates
-# Need the Having clause
+# Handles the following keywords: SELECT, FROM, WHERE, GROUP BY, ORDER BY,
+# HAVING and all aggregates.
+
 #===============================================================================
 
 import sqlparse
@@ -168,8 +168,18 @@ def findIdentifierListWithKeywords(token,mytoklist):
     foundAggregate = False
 #    print "TOken: %s" %token
     if (curr.ttype is None):
-#        print "Im on the None: %s"%curr
         mytoklist.append(curr)
+#        if ("," in str(curr)):
+#            #After an aggregate is found, the clause is no longer an identifierList.
+#            commalist = str(curr).split()
+#            for  i in commalist:
+#                i = str(i).strip()
+#                itemtok = sql.Token(None,i)
+#                mytoklist.append(itemtok)
+#            print commalist
+#        else:
+##        print "Im on the None: %s"%curr
+#            mytoklist.append(curr)
     elif (curr.ttype is Token.Keyword):
         if (myhelper.isAggregate(curr)):
             mytoklist.append(curr)
@@ -183,6 +193,7 @@ def findIdentifierListWithKeywords(token,mytoklist):
     elif (curr.ttype is Token.Punctuation):
         mytoklist.append(curr)
     else:
+        
 #        print "Im on the else: %s"%curr
         mytoklist.append(curr)
     return (foundAttr, mytoklist, foundAggregate)
@@ -196,12 +207,12 @@ if __name__ == "__main__":
     
     #Step 1: Get query from user
 #    userInput = getUserInput()
-    userInput = ("SELECT d.name, AVG (e.salary) "
+    userInput = (" SELECT d.id, d.name, MAX (e.salary), es.skill, d.hatch"
               " FROM employee e, department d "
               " WHERE e.dept_id = d.id "
               " GROUP BY d.name, e.id ")
     
-    userInput = ("SELECT d.name ")
+    userInput = ("SELECT d.id, d.name, MAX (e.salary)")
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = tokenizeUserInput (userInput)
     
@@ -213,9 +224,9 @@ if __name__ == "__main__":
     
     #Step 5: Display the clauses in the user query
     queryclauses.dispay()   
-    selectid = queryclauses.getSelectIdent() 
+    selectid = queryclauses.getSelectIdent()
 #    print myqueryconstructor.checkIfList(selectid)
-    print queryclauses.getSelectContainsAggregate()
+#    print queryclauses.getSelectContainsAggregate()
 #    
 ##    ----------------------------------------------------------------------------------------------------------
 #    

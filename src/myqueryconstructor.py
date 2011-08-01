@@ -123,59 +123,112 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
             groupbyattr.append(str(groupbyIdent))
         numGroupbyAttr = len(groupbyattr) # Number of group by attributes
         
-        print groupbyattr
-        print numGroupbyAttr
-        print "hey"
-        print len(selectIdent)        
-        
         #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
         queryTableMap = {} # to map the query executed and the new table created.
         queryList = {}
+        selectList = {}
+        fromList = {}
+        selectIntoList = {}
+        whereList = {}
         
-        print distinctGroupbyValues
-#        print len(distinctGroupbyValues["e.salary"])
-        lenDistinctValues = []
-        max = 1
-        iterations = 0
-        firstSelectAttr = None
-        lenSeen = []
-        for item in selectIdent:
-            if (iterations == 0):
-                firstSelectAttr = item
-                numRows = len(distinctGroupbyValues[str(item)])
-                iterations+=1
-            else:
-                currLength = len(distinctGroupbyValues[str(item)])
-                if (currLength not in lenSeen):
-                    lenSeen.append(currLength)
-                    max = max * currLength
-            
-         
-        print max
-        numRows = max * numRows
         
+        selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectIdent)
+        
+#        print distinctGroupbyValues
+        
+        numRows = myhelper.findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues)
+        print "Entering the main loop for numRows: %d"%numRows
+
+        lastAgg = ""
         for sid in selectIdent:
             i=0
             iterations = 0
-            while (iterations <numRows): # Max combinations possible.
-                currLength = len(distinctGroupbyValues[str(sid)])
-                numItems = currLength
-                while (numItems > 0):
-                    if (iterations in queryList):
-                        query = queryList[iterations]
+            if (queryobj.getSelectContainsAggregate()):
+                if (not myhelper.isAggregate(sid)): #not an aggregate
+                    print "sid: %s - not an aggregate and lastAgg: %s" %(sid,lastAgg)
+                    if (lastAgg is ""):
+                        while (iterations <numRows): # Max combinations possible.
+                            currLength = len(distinctGroupbyValues[str(sid)])
+                            numItems = currLength
+                            while (numItems > 0):
+                                if (iterations in selectList):
+                                    selectClause = selectList[iterations]
+                                    fromClause = fromList[iterations]
+                                    
+                                else:
+                                    selectClause = " SELECT "
+                                    fromClause = " FROM "
+                                    selectIntoClause = ""
+                                    
+                                attr = str(sid)
+                                attrValue = str(distinctGroupbyValues[str(sid)][numItems-1])
+                
+                                selectClause+= "'"+ attrValue + "'::Text" + " AS " + myhelper.remAggregate(attr) + " , "
+                                fromClause += myhelper.remAggregate(attr) +"_" + str(attrValue) + "_"
+                                selectIntoClause = fromClause.lstrip(" FROM ")
+                                
+                                selectList[iterations] = selectClause
+                                fromList[iterations] = fromClause
+                                selectIntoList[iterations] = selectIntoClause
+                                
+                                numItems-=1
+                                iterations+=1  
                     else:
-                        query = " SELECT "
-                    query+= "'"+ str(distinctGroupbyValues[str(sid)][numItems-1]) + "'::Text" + " AS " + myhelper.remAggregate(str(sid)) + " , "
-                    numItems-=1
-                    queryList[iterations] = query
-                    iterations+=1                
+                        print "lastAgg is not quotes"
+                        while(iterations < numRows):
+                            selectClause = selectList[iterations]
+                            selectClause = selectClause + str(sid) + " AS " + lastAgg+ "_"+ myhelper.remAggregate(str(sid))  + " , "
+                            selectList[iterations]= selectClause
+                            iterations+=1
+                    i+=1
+                else:
+                    lastAgg = str(sid).lower()
+                    print "sid: %s - is an aggregate and lastAgg: %s" %(sid,lastAgg)
+                    while (iterations <numRows): # Max combinations possible.
+                        selectClause= selectList[iterations]
+                        selectClause = selectClause + str(sid) 
+                        selectList[iterations]= selectClause
+                        iterations+=1
+            else:
+                print "does not aggregate"
+                while (iterations <numRows): # Max combinations possible.
+                    currLength = len(distinctGroupbyValues[str(sid)])
+                    numItems = currLength
+                    while (numItems > 0):
+                        if (iterations in selectList):
+                            selectClause = selectList[iterations]
+                            fromClause = fromList[iterations]
+                            
+                        else:
+                            selectClause = " SELECT "
+                            fromClause = " FROM "
+                            selectIntoClause = ""
+                            
+                        attr = str(sid)
+                        attrValue = str(distinctGroupbyValues[str(sid)][numItems-1])
+        
+                        selectClause+= "'"+ attrValue + "'::Text" + " AS " + myhelper.remAggregate(attr) + " , "
+                        fromClause += myhelper.remAggregate(attr) +"_" + str(attrValue) + "_"
+                        selectIntoClause = fromClause.lstrip(" FROM ")
+                        
+                        selectList[iterations] = selectClause
+                        fromList[iterations] = fromClause
+                        selectIntoList[iterations] = selectIntoClause
+                        
+                        numItems-=1
+                        iterations+=1  
+    #                    print selectClause.rstrip(" , ")
+    #                    print fromClause.rstrip("_")    
+    #                    print selectIntoClause.rstrip("_")
+                        print selectIntoClause   
                 i+=1
             
         print "Outof loope"
 
-        for k,v in queryList.iteritems():
+        for k,v in selectList.iteritems():
             print v
-        
+#        tempTable = myhelper.remAggregate(str(attr)) +"_" + str(distinctGroupbyValues[i])
+#        selectInto = " INTO " + tempTable
         
         
         print "returning"
@@ -231,10 +284,10 @@ def writeToFile (queryList,bigQuery, queryTableMap):
     FILE.close()
 
 if __name__ == "__main__":
-    userInput = (" SELECT d.id, es.skill, e.id "
-              " FROM department d, employee_skill es,employee e "
+    userInput = (" SELECT d.id, MAX (e.salary), AVG(es.skill)"
+              " FROM department d, employee_skill es, employee e "
               " WHERE e.dept_id = d.id "
-              " GROUP BY d.id, es.skill,e.id ")
+              " GROUP BY d.id ")
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)
