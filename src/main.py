@@ -13,6 +13,30 @@ if __name__ == "__main__":
               " WHERE e.dept_id = d.id "
               " GROUP BY d.id ")
     
+    userInput = ("SELECT e.name "
+              " FROM department d, employee e "
+              " GROUP BY e.name ")    
+    
+    userInput = ("SELECT d.name, e.name "
+              " FROM employee e, department d "
+              " WHERE e.dept_id = d.id"
+              " GROUP BY d.name, e.name")    
+    
+    userInput = ("SELECT d.name, e.name, MAX(e.salary) "
+              " FROM employee e, department d "
+              " WHERE e.dept_id = d.id"
+              " GROUP BY d.name, e.name")
+    
+    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
+              " FROM employee e, department d, employee_skill es"
+              " WHERE e.dept_id = d.id and e.id = es.emp_id"
+              " GROUP BY d.name,es.skill,e.name")
+
+    userInput = (" SELECT d.name, es.skill, MAX (e.salary) " 
+              " FROM employee e, department d, employee_skill es "
+              " WHERE e.dept_id = d.id and es.emp_id = e.id "
+              " GROUP BY d.name, es.skill " )
+    
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 

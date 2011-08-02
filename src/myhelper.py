@@ -25,9 +25,11 @@ def isAggregate (tok):
     return False
 
 def remAggregate (input):
+    input = input.strip()
     input = input.replace("(",'')
     input = input.replace(")",'')
     input = input.replace(".",'_')
+    input = input.replace(" ", "_")
     return input
 
 def isWhereClauseOperator(tok):

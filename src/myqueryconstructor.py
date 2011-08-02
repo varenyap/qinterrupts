@@ -96,8 +96,10 @@ def findStringFromWhereClauses(queryobj):
         orgFromClause += str(fid) + " , "
     orgFromClause = orgFromClause.rstrip(", ")    
     
+    orgWhereClause = None
     whereIdent = queryobj.getWhereIdent()
-    orgWhereClause = " " + str(whereIdent) # Already has a WHERE keyword in it
+    if whereIdent is not None:
+        orgWhereClause = " " + str(whereIdent) # Already has a WHERE keyword in it
     
     return(orgFromClause,orgWhereClause)
 
@@ -121,6 +123,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         tempTableList = {}
         selectIntoList = {}
         whereList = {}
+        addBigWhere = ""
 
         lastAgg = ""
         for sid in selectIdent:
@@ -137,19 +140,21 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                                 if (iterations in selectList):
                                     selectClause = selectList[iterations]
                                     fromClause = tempTableList[iterations]
+                                    whereClause = whereList[iterations]
                                     
                                 else:
                                     selectClause = " SELECT "
                                     fromClause = " FROM "
                                     selectIntoClause = " "
+                                    whereClause = ""
                                     
                                 attr = str(sid)
                                 attrValue = str(distinctGroupbyValues[str(sid)][numItems-1])
                 
                                 selectClause+= "'"+ attrValue + "'::Text" + " AS " + myhelper.remAggregate(attr) + " , "
-                                fromClause += myhelper.remAggregate(attr) +"_" + str(attrValue) + "_"
+                                fromClause += myhelper.remAggregate(attr) +"_" + myhelper.remAggregate(attrValue) + "_"
                                 selectIntoClause = fromClause.lstrip(" FROM ")
-                                whereClause = orgWhereClause + " AND " + attr + " = '" + attrValue + "'"
+                                whereClause = whereClause + " AND " + attr + " = '" + attrValue + "'"
                                 
                                 selectList[iterations] = selectClause
                                 tempTableList[iterations] = fromClause
@@ -185,20 +190,23 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                         if (iterations in selectList):
                             selectClause = selectList[iterations]
                             fromClause = tempTableList[iterations]
+                            whereClause = whereList[iterations]
                             
                         else:
                             selectClause = " SELECT "
                             fromClause = " FROM "
                             selectIntoClause = ""
+                            whereClause = ""
                             
                         attr = str(sid)
                         attrValue = str(distinctGroupbyValues[str(sid)][numItems-1])
         
                         selectClause+= "'"+ attrValue + "'::Text" + " AS " + myhelper.remAggregate(attr) + " , "
-                        fromClause += myhelper.remAggregate(attr) +"_" + str(attrValue) + "_"
+                        fromClause += myhelper.remAggregate(attr) +"_" + myhelper.remAggregate(attrValue) + "_"
                         selectIntoClause = fromClause.lstrip(" FROM ")
-                        whereClause = orgWhereClause + " AND " + attr + " = '" + attrValue + "'" 
                         
+                        whereClause += " AND " + attr + " = '" + attrValue + "'"
+                                                
                         selectList[iterations] = selectClause
                         tempTableList[iterations] = fromClause
                         selectIntoList[iterations] = " INTO " +  selectIntoClause
@@ -213,8 +221,14 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         while(iterations <numRows):
             selectList[iterations] = selectList[iterations].rstrip(" , ")            
             selectIntoList[iterations] = selectIntoList[iterations].rstrip(" _ ")
-            queryList[iterations] = selectList[iterations] + selectIntoList[iterations] + orgFromClause +  whereList[iterations]
+            if orgWhereClause is None:
+                whereList[iterations] = whereList[iterations].lstrip(" AND ")
+                whereList[iterations] = " WHERE " + whereList[iterations]
+            else:
+                whereList[iterations] = orgWhereClause + whereList[iterations]
             
+            queryList[iterations] = selectList[iterations] + selectIntoList[iterations] + orgFromClause +  whereList[iterations]
+                
             tempTableList[iterations] = (tempTableList[iterations].rstrip("_")).lstrip(" FROM ")
             tempTable = tempTableList[iterations]
             subquery = queryList[iterations]
@@ -237,7 +251,10 @@ def constructBigQuery(subSelects):
         union = " UNION "
         
         for item in queryTableMap.iteritems():
-            bigQuery += "SELECT * FROM "+ str(item[0]) + " " + addBigWhere + union
+            if (addBigWhere is not None):
+                bigQuery += "SELECT * FROM "+ str(item[0]) + " " + addBigWhere + union
+            else:
+                bigQuery += "SELECT * FROM "+ str(item[0]) + " " + union
 #            bigQuery += "SELECT * FROM "+ str(item) + addBigWhere + union
         bigQuery = bigQuery[:-6]
         writeToFile (queryList, bigQuery, queryTableMap)
