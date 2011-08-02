@@ -4,6 +4,7 @@
 #===============================================================================
 
 from sqlparse.tokens import *#Used for match function
+from sqlparse import sql
 
 def cleanValue (val):
     if (val is None):
@@ -59,18 +60,12 @@ def removeListDuplicates(seq):
     [noDupes.append(i) for i in seq if not noDupes.count(i)]
     return noDupes
 
-def findSelectClauseWithoutAggregates(selectIdent):
-    
-    print "select clause without aggregates: %s" %selectIdent
+def findSelectClauseWithoutAggregates(selectIdent):    
     selectWithoutAggregates = []
     for sid in selectIdent:
         if (not isAggregate(sid)):
-#            print "not an aggregate: %s " %sid
             if (not "(" in str(sid)):
                 selectWithoutAggregates.append(sid)
-#        else:
-#            print "found aggregate: %s" %sid
-            
 #    print selectWithoutAggregates
     return selectWithoutAggregates
 
@@ -83,7 +78,8 @@ def findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues):
     lenSeen = []
     numRows = 1
     if selectIdentWithoutAggregates is None:
-        print "select has only aggregates"
+#        print "select has only aggregates"
+        "selected"
             
     else:
         for item in selectIdentWithoutAggregates:
@@ -97,11 +93,19 @@ def findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues):
                     max = max * currLength
     #    print max
         numRows = max * numRows
-        print numRows
+#        print numRows
     return numRows
+
+def checkIfList(ident):
+    if (isinstance(ident, sql.Identifier)):#d.name
+            return False
+    return True
+
     
     
-    
-    
-    
-    
+#Unused
+#def getResultSetAsList(query):
+#    if (query is not None):
+#        results = db.allrows(query)    
+#        return results
+#    return None

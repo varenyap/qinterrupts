@@ -197,11 +197,13 @@ def findIdentifierListWithKeywords(token,mytoklist):
 #        print "Im on the else: %s"%curr
         mytoklist.append(curr)
     return (foundAttr, mytoklist, foundAggregate)
+
+
     
-def parseIdentifierList(attributes):
-    print attributes
-    print attributes[0].get_real_name()
-    print attributes[0].get_alias()
+#def parseIdentifierList(attributes):
+#    print attributes
+#    print attributes[0].get_real_name()
+#    print attributes[0].get_alias()
 
 if __name__ == "__main__":
     

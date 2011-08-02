@@ -60,6 +60,24 @@ class myqueryclauses:
         return self.havingIdent
     def getSelectContainsAggregate(self):
         return self.selectContainsAggregate
+   
+    def getAll(self):
+        retVal = []
+        
+        if (self.selectIdent is not None):
+            retVal.append(self.selectIdent)
+        if (self.fromIdent is not None):
+            retVal.append(self.fromIdent)
+        if (self.whereIdent is not None):
+            retVal.append(self.whereIdent)
+        if (self.groupbyIdent is not None):
+            retVal.append(self.groupbyIdent)
+        if (self.orderbyIdent is not None):
+            retVal.append(self.orderbyIdent)
+        if (self.havingIdent is not None):
+            retVal.append(self.havingIdent)
+        
+        return retVal
     
     def dispay(self):
         if (self.selectIdent is not None):

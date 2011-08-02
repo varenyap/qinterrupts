@@ -6,21 +6,11 @@ import myparser
 
 db = db_connection.Db_connection()
 
-def getResultSetAsList(query):
-    if (query is not None):
-        results = db.allrows(query)    
-        return results
-    return None
-
-def checkIfList(ident):
-    if (isinstance(ident, sql.Identifier)):#d.name
-            return False
-    return True
-
+# This function is used exclusively by the findDistinctGroupbyalues
 def getGroupbyDistinctList(queryTable,groupbyIdent):
     if (queryTable is not None):
         groupbyattr = [] # contains string group by attribute names
-        if (checkIfList(groupbyIdent)):
+        if (myhelper.checkIfList(groupbyIdent)):
             for id in groupbyIdent:
                 groupbyattr.append(str(id))
         else:
@@ -48,11 +38,11 @@ def findDistinctGroupbyValues(queryobj):
 #    print fromIdent
     queryTable =[]
     if ((groupbyIdent and fromIdent) is not None):
-        if (checkIfList(groupbyIdent)):
+        if (myhelper.checkIfList(groupbyIdent)):
             for gid in groupbyIdent:
                 gAlias = gid.get_parent_name()
                 query = " SELECT DISTINCT " + str(gid) + " FROM "
-                if (checkIfList(fromIdent)): # have a from list and group-by list
+                if (myhelper.checkIfList(fromIdent)): # have a from list and group-by list
                     for fid in fromIdent:
 #                        print "fid:%s and gAlias:%s" %(fid.get_alias(),gAlias)
                         
@@ -69,7 +59,7 @@ def findDistinctGroupbyValues(queryobj):
                 queryTable.append(query)
         else:#dont have a group-by list"
             gAlias = groupbyIdent.get_parent_name()
-            if (checkIfList(fromIdent)):
+            if (myhelper.checkIfList(fromIdent)):
                 for fid in fromIdent:
                     if (fid.get_alias() is gAlias):
                         query = " SELECT DISTINCT " + str(groupbyIdent) + " FROM " + str(fid)
@@ -81,71 +71,64 @@ def findDistinctGroupbyValues(queryobj):
         resultset = getGroupbyDistinctList(queryTable,groupbyIdent)
 #        print resultset
         return resultset
-    
 
-def findTablenameFromAlias(fromIdent,alias):    
-    if (isinstance(fromIdent, sql.Identifier)):#d.name        
-        print "I have a from identifier"
-        name = fromIdent.get_name()
-        alias = fromIdent.get_parent_name()
-        print alias
-        print name
-    else: #d.name, e.id 
-        print "I have a from by list"
-        for fid in fromIdent:
-            fidAlias = fid.get_alias()
-            if (alias == fidAlias):
-                print fid.get_real_name()
-                return fid.get_real_name()
-    return False
+#def findTablenameFromAlias(fromIdent,alias):    
+#    if (isinstance(fromIdent, sql.Identifier)):#d.name        
+#        print "I have a from identifier"
+#        name = fromIdent.get_name()
+#        alias = fromIdent.get_parent_name()
+#        print alias
+#        print name
+#    else: #d.name, e.id 
+#        print "I have a from by list"
+#        for fid in fromIdent:
+#            fidAlias = fid.get_alias()
+#            if (alias == fidAlias):
+#                print fid.get_real_name()
+#                return fid.get_real_name()
+#    return False
+
+def findStringFromWhereClauses(queryobj):
+    
+    fromIdent = queryobj.getFromIdent()
+    orgFromClause = ' FROM '
+    for fid in fromIdent:
+        orgFromClause += str(fid) + " , "
+    orgFromClause = orgFromClause.rstrip(", ")    
+    
+    whereIdent = queryobj.getWhereIdent()
+    orgWhereClause = " " + str(whereIdent) # Already has a WHERE keyword in it
+    
+    return(orgFromClause,orgWhereClause)
 
 def constructSubSelects (queryobj, distinctGroupbyValues):
     if (queryobj, distinctGroupbyValues):
         
-        print " Constructing sub selects"
-        groupbyIdent = queryobj.getGroupbyIdent()    
-        fromIdent = queryobj.getFromIdent()
         selectIdent = queryobj.getSelectIdent()
-        whereIdent = queryobj.getWhereIdent()
+        (orgFromClause,orgWhereClause) = findStringFromWhereClauses(queryobj)
         
-        orgFromClause = ' FROM '
-        orgWhereClause = " " + str(whereIdent) # Already has a WHERE keyword in it
-        
-        for fid in fromIdent:
-            orgFromClause += str(fid) + " , "
-        orgFromClause = orgFromClause.rstrip(", ")
-        
-        groupbyattr = [] # contains string group by attribute names
-        if (checkIfList(groupbyIdent)):
-            for id in groupbyIdent:
-                groupbyattr.append(str(id))
-        else:
-            groupbyattr.append(str(groupbyIdent))
-        numGroupbyAttr = len(groupbyattr) # Number of group by attributes
-        
+        # Find all non-aggregate attributes in the select clause
         #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
+        selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectIdent)
+
+        #Finding the number of rows that the original group by would have.
+        numRows = myhelper.findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues)
+        
+        #Temporary data structures required
         queryTableMap = {} # to map the query executed and the new table created.
         queryList = {}
         selectList = {}
         tempTableList = {}
         selectIntoList = {}
         whereList = {}
-        
-        
-        selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectIdent)
-        
-#        print distinctGroupbyValues
-        
-        numRows = myhelper.findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues)
-        print "Entering the main loop for numRows: %d"%numRows
 
         lastAgg = ""
         for sid in selectIdent:
             i=0
             iterations = 0
             if (queryobj.getSelectContainsAggregate()):
-                if (not myhelper.isAggregate(sid)): #not an aggregate
-                    print "sid: %s - not an aggregate and lastAgg: %s" %(sid,lastAgg)
+                if (not myhelper.isAggregate(sid)): # sid is not an aggregate
+#                    print "sid: %s - not an aggregate and lastAgg: %s" %(sid,lastAgg)
                     if (lastAgg is ""):
                         while (iterations <numRows): # Max combinations possible.
                             currLength = len(distinctGroupbyValues[str(sid)])
@@ -176,7 +159,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                                 numItems-=1
                                 iterations+=1  
                     else:
-                        print "lastAgg is not quotes"
+#                        print "lastAgg is not quotes"
                         while(iterations < numRows):
                             selectClause = selectList[iterations]
                             selectClause = selectClause + str(sid) + " AS " + lastAgg+ "_"+ myhelper.remAggregate(str(sid))  + " , "
@@ -187,14 +170,14 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                     i+=1
                 else:
                     lastAgg = str(sid).lower()
-                    print "sid: %s - is an aggregate and lastAgg: %s" %(sid,lastAgg)
+#                    print "sid: %s - is an aggregate and lastAgg: %s" %(sid,lastAgg)
                     while (iterations <numRows): # Max combinations possible.
                         selectClause= selectList[iterations]
                         selectClause = selectClause + str(sid) 
                         selectList[iterations]= selectClause
                         iterations+=1
             else:
-                print "does not aggregate"
+#                print "does not aggregate"
                 while (iterations <numRows): # Max combinations possible.
                     currLength = len(distinctGroupbyValues[str(sid)])
                     numItems = currLength
@@ -226,14 +209,11 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
    
                 i+=1
             
-        print "Outof loope"
-
         iterations = 0        
         while(iterations <numRows):
             selectList[iterations] = selectList[iterations].rstrip(" , ")            
             selectIntoList[iterations] = selectIntoList[iterations].rstrip(" _ ")
             queryList[iterations] = selectList[iterations] + selectIntoList[iterations] + orgFromClause +  whereList[iterations]
-            print"subq-----%s" %queryList[iterations]
             
             tempTableList[iterations] = (tempTableList[iterations].rstrip("_")).lstrip(" FROM ")
             tempTable = tempTableList[iterations]
@@ -242,15 +222,11 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
             
             iterations+=1
         
-        print "returning"
-        print queryTableMap
-        print addBigWhere
         retVal = []
         retVal.append(queryTableMap)
         retVal.append(queryList)
         retVal.append(addBigWhere.rstrip(" AND "))      
         return retVal
-
 
 def constructBigQuery(subSelects):
     if (subSelects):
@@ -279,7 +255,6 @@ def writeToFile (queryList,bigQuery, queryTableMap):
         FILE.write('db = db_connection.Db_connection()\n\n')
         FILE.write('db.clear_database() # reset the database on each run.\n\n')
         
-        
         # Drop if exists the temp tables we are about to create
         FILE.write('# If the temp tables we are about to create exist, drop them!\n')
         for tempTable,query in queryTableMap.iteritems():
@@ -287,7 +262,6 @@ def writeToFile (queryList,bigQuery, queryTableMap):
             FILE.write(drop)        
         
         FILE.write('\n# Make a db call and run the sub queries that will collectively evaluate to the main query result\n')
-        print queryList
         for key,query in queryList.iteritems():
             query = """db.make_query(""" + triplequote + str(query) + triplequote + """)\n"""
             FILE.write(query)        
@@ -312,5 +286,4 @@ if __name__ == "__main__":
     # dictionary having the temp table as key and the query for that table as value 
     subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
 #    print "\n\n\n\n\n\n\n"
-    constructBigQuery(subSelects)
-#    
+    constructBigQuery(subSelects)    
