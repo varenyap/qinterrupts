@@ -91,12 +91,10 @@ def findDistinctGroupbyValues(queryobj):
 def findStringFromWhereClauses(queryobj):
     
     fromIdent = queryobj.getFromIdent()
-    print fromIdent
     orgFromClause = ' FROM '
     if(myhelper.checkIfList(fromIdent)):
         for fid in fromIdent:
             orgFromClause += str(fid) + " , "
-            print orgFromClause
         orgFromClause = orgFromClause.rstrip(", ")    
     else:
         orgFromClause += str(fromIdent)
@@ -111,16 +109,27 @@ def findStringFromWhereClauses(queryobj):
 def constructSubSelects (queryobj, distinctGroupbyValues):
     if (queryobj, distinctGroupbyValues):
         
+        #First, check if there are any non-aggregates in the select clause
+        selectIdent = queryobj.getSelectIdent()
+        selectGroupbyIdent = queryobj.getSelectGroupbyIdent()
+        if (selectGroupbyIdent is not None):
+#            selectIdent = selectGroupbyAttr
+            selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectGroupbyIdent)
+            newSelectIdent  = selectGroupbyIdent
+        else:
+            # Find all non-aggregate attributes in the select clause
+            #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
+            selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectIdent)
+            newSelectIdent  = selectIdent
+        
         (orgFromClause,orgWhereClause) = findStringFromWhereClauses(queryobj)
         
-        # Find all non-aggregate attributes in the select clause
-        #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
-        selectIdent = queryobj.getSelectIdent()
-        selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectIdent)
-        print selectIdentWithoutAggregates
-
         #Finding the number of rows that the original group by would have.
         numRows = myhelper.findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues)
+        
+        print selectGroupbyIdent
+        print selectIdent
+        print numRows
         
         #Temporary data structures required
         queryList = {}
@@ -131,7 +140,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         addBigWhere = ""
         lastAgg = ""
         
-        for sid in selectIdent:
+        for sid in newSelectIdent:
             print sid
             iterations = 0
             containsAggregate = queryobj.getSelectContainsAggregate()
@@ -167,6 +176,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         #Creating the final query from the sub-parts we already have.
         return createReturnValues (numRows, selectList, selectIntoList, whereList, queryList,
                                    tempTableList, orgWhereClause, orgFromClause, addBigWhere)
+
 
 # This function is used by the constructSubSelects() function to create the  
 # clauses for each query when attribute (sid) is not an aggregate
@@ -286,7 +296,7 @@ def writeToFile (queryList,bigQuery, queryTableMap):
     FILE.close()
 
 if __name__ == "__main__":
-    userInput = (" SELECT e.id, MAX(e.salary) "
+    userInput = (" SELECT MAX(e.salary) "
                  " FROM employee e "
                  " group by e.id ")
     
@@ -295,8 +305,8 @@ if __name__ == "__main__":
     queryobj = myparser.myParser(mytok, mytoklen)
 #    queryclauses.dispay()
     distinctGroupbyValues = findDistinctGroupbyValues(queryobj)
-    
-    # dictionary having the temp table as key and the query for that table as value 
+
+#    # dictionary having the temp table as key and the query for that table as value 
     subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
-#    print "\n\n\n\n\n\n\n"
+##    print "\n\n\n\n\n\n\n"
     constructBigQuery(subSelects)    

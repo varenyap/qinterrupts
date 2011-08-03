@@ -17,7 +17,7 @@ def cleanValue (val):
 
 #Function checks if the token passed in is an aggregate type
 def isAggregate (tok):
-    aggregateKeywords = ["SUM","MIN","MAX","AVG"]
+    aggregateKeywords = ["SUM","MIN","MAX","AVG", "COUNT", "FIRST", "LAST"]
     if (tok is not None):
         for key in aggregateKeywords:
             if(tok.match(Keyword, key)):

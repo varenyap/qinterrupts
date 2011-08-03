@@ -8,18 +8,18 @@ if __name__ == "__main__":
     
     #Step 1: Get query from user
 #    userInput = getUserInput()
-#    userInput = (" SELECT d.id, MAX (e.salary)"
-#              " FROM department d, employee e "
-#              " WHERE e.dept_id = d.id "
-#              " GROUP BY d.id ")
+    userInput = (" SELECT d.id, MAX (e.salary)"
+              " FROM department d, employee e "
+              " WHERE e.dept_id = d.id "
+              " GROUP BY d.id ")
     
 #    userInput = ("SELECT e.name "
 #              " FROM department d, employee e "
 #              " GROUP BY e.name ")   
     
-    userInput = (" SELECT e.id, MAX(e.salary) "
+    userInput = (" SELECT MAX(e.salary) "
                  " FROM employee e "
-                 " group by e.id ") 
+                 " group by e.dept_id ") 
 #    
 #    userInput = ("SELECT d.name, e.name "
 #              " FROM employee e, department d "

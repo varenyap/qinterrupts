@@ -138,7 +138,15 @@ def myParser(mytok, mytoklen):
                 queryobj.setHavingIdent(sqlparse.sql.IdentifierList(mytoklist))
 #                queryclauses.getHavingIdent()
             i+=1
+    
+    selectIdentWithoutAggreagates = myhelper.findSelectClauseWithoutAggregates(queryobj.getSelectIdent())
+    if (not selectIdentWithoutAggreagates):
+        newIdent = addSelectGroupbyAttributesIdents(queryobj.getSelectIdent(), queryobj.getGroupbyIdent())
+        queryobj.setSelectGroupbyIdent(newIdent)
+#    print queryobj.getSelectGroupbyIdent()
     return queryobj
+
+    
 #    print " ----------------------------Finished parsing the user query--------------------------"
 
 def incrementIfWhitespace(tok, idx):
@@ -198,53 +206,60 @@ def findIdentifierListWithKeywords(token,mytoklist):
         mytoklist.append(curr)
     return (foundAttr, mytoklist, foundAggregate)
 
-
+# Used for the case where the select clause contains only aggregates.
+#Parameters are of type: Identifier or IdentifierList
+def addSelectGroupbyAttributesIdents(selectid, groupbyid):
+    newIdent = " SELECT "#sqlparse.sql.IdentifierList
+    if (myhelper.checkIfList(groupbyid)):
+        for gid in groupbyid:
+            newIdent+=str(gid) + ", "
+    else:
+        newIdent+=str(groupbyid) + ", "
     
+    if(myhelper.checkIfList(selectid)):
+        for sid in selectid:
+            if(myhelper.isAggregate(sid)):
+                newIdent+=str(sid) + " "
+            else:
+                newIdent+=str(sid) + ", "
+    else:
+        newIdent+=str(selectid) + " "
+
+    newIdent = newIdent.rstrip(", ")     
+
+    (mytok, mytoklen) = tokenizeUserInput (newIdent)
+    myobj = myParser(mytok,mytoklen)
+    return myobj.getSelectIdent()
+
+
 #def parseIdentifierList(attributes):
 #    print attributes
 #    print attributes[0].get_real_name()
 #    print attributes[0].get_alias()
 
+
 if __name__ == "__main__":
     
     #Step 1: Get query from user
 #    userInput = getUserInput()
-    userInput = (" SELECT d.id, d.name, MAX (e.salary), es.skill, d.hatch"
-              " FROM employee e, department d "
-              " WHERE e.dept_id = d.id "
-              " GROUP BY d.name, e.id ")
+    userInput = (" SELECT MAX(e.salary) "
+                 " FROM employee e "
+                 " group by e.id ")
     
-    userInput = ("SELECT d.id, d.name, MAX (e.salary)")
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = tokenizeUserInput (userInput)
-    
-    #Step 3: Display the tokens in the user query
-    displayTokens(mytok,mytoklen)
     
     #Step 4: Parse the user query using the tokens created
     queryclauses = myParser(mytok, mytoklen)
     
     #Step 5: Display the clauses in the user query
-    queryclauses.dispay()   
-    selectid = queryclauses.getSelectIdent()
-#    print myqueryconstructor.checkIfList(selectid)
-#    print queryclauses.getSelectContainsAggregate()
+#    queryclauses.dispay()   
+#    selectid = queryclauses.getSelectIdent()
+#    groupbyid = queryclauses.getGroupbyIdent()
 #    
-##    ----------------------------------------------------------------------------------------------------------
-#    
-#    #Step 1: find the columns in group by clause
-#    groupbyIdent = queryclauses.getGroupbyIdent()
-#    
-##    if (isinstance(groupbyIdent, sql.Identifier)):#d.name
-##        print "I have a group by identifier"
-##    else: #d.name, e.id 
-##        print "I have a group by list"
+#    print 'new'
 #
-#    #Step 2: find all the tables in the from clause
-#    fromIdent = queryclauses.getFromIdent()
-##    if (isinstance(fromIdent, sql.Identifier)):#d.name
-##        print "I have a from identifier"
-##    else: #d.name, e.id 
-##        print "I have a from list"
-#    
-#    # Step 3: Find the distinct values of the group-by attribute
+#    selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectid)
+#    if (not selectIdentWithoutAggregates):
+#        print "No aggregates"
+#        print addSelectGroupbyAttributesIdents(selectid, groupbyid)
