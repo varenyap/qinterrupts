@@ -81,7 +81,7 @@ def findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues):
     numRows = 1
     if selectIdentWithoutAggregates is None:
 #        print "select has only aggregates"
-        "selected"
+        print"Select has no attributes so how to find group by rows"
             
     else:
         for item in selectIdentWithoutAggregates:
