@@ -109,13 +109,34 @@ def findStringFromWhereClauses(queryobj):
 def constructSubSelects (queryobj, distinctGroupbyValues):
     if (queryobj, distinctGroupbyValues):
         
+        #Temporary data structures required
+        queryList = {}
+        selectList = {}
+        tempTableList = {}
+        selectIntoList = {}
+        whereList = {}
+        addBigWhere = ""
+        lastAgg = ""
+        bigSelect = ""
+        
         #First, check if there are any non-aggregates in the select clause
         selectIdent = queryobj.getSelectIdent()
         selectGroupbyIdent = queryobj.getSelectGroupbyIdent()
         if (selectGroupbyIdent is not None):
-#            selectIdent = selectGroupbyAttr
             selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectGroupbyIdent)
             newSelectIdent  = selectGroupbyIdent
+            bigSelect = " SELECT "
+            
+            #Since we modify the select clause for the sub queries, we have to modify the select clause
+            # in the big query as well.
+            for id in selectIdent:
+                if (myhelper.isAggregate(id)):
+                    bigSelect+= myhelper.remAggregate(str(id)) + "_"
+                else:
+                    bigSelect+= myhelper.remAggregate(str(id)) + ", "
+            bigSelect = bigSelect.strip("_")
+            bigSelect = bigSelect.strip(", ")        
+        
         else:
             # Find all non-aggregate attributes in the select clause
             #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
@@ -131,14 +152,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         print selectIdent
         print numRows
         
-        #Temporary data structures required
-        queryList = {}
-        selectList = {}
-        tempTableList = {}
-        selectIntoList = {}
-        whereList = {}
-        addBigWhere = ""
-        lastAgg = ""
+        
         
         for sid in newSelectIdent:
             print sid
@@ -167,15 +181,15 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                         selectList[iterations]= selectClause
                         iterations+=1
             
-            
             else: # selectClause does not have an attribute
                 (selectList,tempTableList,whereList, selectIntoList) = createQueryNotAggregate(iterations,numRows,sid,
                                                                       selectList,tempTableList,whereList,
                                                                        selectIntoList,distinctGroupbyValues,containsAggregate)
+
         
         #Creating the final query from the sub-parts we already have.
         return createReturnValues (numRows, selectList, selectIntoList, whereList, queryList,
-                                   tempTableList, orgWhereClause, orgFromClause, addBigWhere)
+                                   tempTableList, orgWhereClause, orgFromClause, addBigWhere, bigSelect.lower())
 
 
 # This function is used by the constructSubSelects() function to create the  
@@ -221,7 +235,7 @@ def createQueryNotAggregate(iterations, numRows,sid, selectList, tempTableList, 
 # This function is used by the constructSubSelects() function to create the  
 # return values for the function constructBigQuery()
 def createReturnValues(numRows, selectList, selectIntoList, whereList, queryList, tempTableList,
-                       orgWhereClause, orgFromClause, addBigWhere):
+                       orgWhereClause, orgFromClause, addBigWhere, bigSelect):
     queryTableMap = {} # to map the query executed and the new table created.
     iterations = 0        
     while(iterations <numRows):
@@ -245,22 +259,29 @@ def createReturnValues(numRows, selectList, selectIntoList, whereList, queryList
     retVal = []
     retVal.append(queryTableMap)
     retVal.append(queryList)
-    retVal.append(addBigWhere.rstrip(" AND "))      
+    retVal.append(addBigWhere.rstrip(" AND "))
+    retVal.append (bigSelect)      
     return retVal
         
 def constructBigQuery(subSelects):
     if (subSelects):
         queryTableMap = subSelects [0]
-        addBigWhere = subSelects [2]
         queryList = subSelects[1]
+        addBigWhere = subSelects [2]
+        bigSelect = subSelects[3]
+        if bigSelect is None:
+            selectClause = " SELECT * FROM "
+        else:
+            selectClause = bigSelect + " FROM "
+        
         bigQuery = ""
         union = " UNION "
         
         for item in queryTableMap.iteritems():
             if (addBigWhere is not None):
-                bigQuery += "SELECT * FROM "+ str(item[0]) + " " + addBigWhere + union
+                bigQuery += selectClause + str(item[0]) + " " + addBigWhere + union
             else:
-                bigQuery += "SELECT * FROM "+ str(item[0]) + " " + union
+                bigQuery += selectClause + str(item[0]) + " " + union
 #            bigQuery += "SELECT * FROM "+ str(item) + addBigWhere + union
         bigQuery = bigQuery[:-6]
         writeToFile (queryList, bigQuery, queryTableMap)
