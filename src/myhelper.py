@@ -72,9 +72,7 @@ def findSelectClauseWithoutAggregates(selectIdent):
     return selectWithoutAggregates
 
 def findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues):
-#    print "find groupby Rows"
-#    print distinctGroupbyValues
-#    print selectIdentWithoutAggregates
+
     max = 1
     iterations = 0
     lenSeen = []
@@ -93,7 +91,6 @@ def findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues):
                 if (currLength not in lenSeen):
                     lenSeen.append(currLength)
                     max = max * currLength
-    #    print max
         numRows = max * numRows
 #        print numRows
     return numRows

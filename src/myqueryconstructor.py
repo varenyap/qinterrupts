@@ -16,6 +16,7 @@ def getGroupbyDistinctList(queryTable,groupbyIdent):
         else:
             groupbyattr.append(str(groupbyIdent))
         
+        #Creating a more handle-able structure to the data
         returnList = {}
         i = 0
         for query in queryTable:
@@ -125,7 +126,6 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         if (selectGroupbyIdent is not None):
             selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectGroupbyIdent)
             newSelectIdent  = selectGroupbyIdent
-            bigSelect = " SELECT "
             
             #Since we modify the select clause for the sub queries, we have to modify the select clause
             # in the big query as well.
@@ -148,14 +148,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         #Finding the number of rows that the original group by would have.
         numRows = myhelper.findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues)
         
-        print selectGroupbyIdent
-        print selectIdent
-        print numRows
-        
-        
-        
         for sid in newSelectIdent:
-            print sid
             iterations = 0
             containsAggregate = queryobj.getSelectContainsAggregate()
             if (containsAggregate):
@@ -164,8 +157,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                         (selectList,tempTableList,whereList, selectIntoList) = createQueryNotAggregate(iterations,numRows,sid,
                                                                               selectList,tempTableList,whereList,
                                                                                selectIntoList,distinctGroupbyValues,containsAggregate)  
-                    else: #lastAgg is not quotes"
-                        
+                    else: #lastAgg is not quotes"                
                         while(iterations < numRows):
                             selectClause = selectList[iterations]
                             selectClause = selectClause + str(sid) + " AS " + lastAgg+ "_"+ myhelper.remAggregate(str(sid))  + " , "
@@ -269,20 +261,20 @@ def constructBigQuery(subSelects):
         queryList = subSelects[1]
         addBigWhere = subSelects [2]
         bigSelect = subSelects[3]
-        if bigSelect is None:
+        
+        if (bigSelect is ""):
             selectClause = " SELECT * FROM "
         else:
-            selectClause = bigSelect + " FROM "
+            selectClause = "SELECT " + bigSelect + " FROM "
         
         bigQuery = ""
         union = " UNION "
-        
         for item in queryTableMap.iteritems():
             if (addBigWhere is not None):
                 bigQuery += selectClause + str(item[0]) + " " + addBigWhere + union
             else:
                 bigQuery += selectClause + str(item[0]) + " " + union
-#            bigQuery += "SELECT * FROM "+ str(item) + addBigWhere + union
+
         bigQuery = bigQuery[:-6]
         writeToFile (queryList, bigQuery, queryTableMap)
 
