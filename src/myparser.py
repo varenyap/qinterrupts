@@ -62,8 +62,10 @@ def myParser(mytok, mytoklen):
             
             if (str(mytok[i].ttype) == 'Token.Keyword.DML' and str(mytok[i].value) == "SELECT"):
                 i = incrementIfWhitespace(mytok[i+1], i)
-                
+                print mytok[i]
+                print mytok[i+1]
                 selectIdent = findIdentifierList(mytok[i+1])
+                print "selectIdent: %s" %selectIdent
                 if (selectIdent is None):
                     mytoklist = []
                     foundAttr = False
@@ -78,7 +80,6 @@ def myParser(mytok, mytoklen):
                             break;
                         i+=1# From where loop at line 53
                     selectIdent = (sqlparse.sql.IdentifierList(mytoklist)).get_identifiers()
-                
                 
                 queryobj.setSelectIdent(selectIdent)
 #                queryobj.setSelectIdent(sqlparse.sql.IdentifierList(mytoklist))
@@ -100,8 +101,8 @@ def myParser(mytok, mytoklen):
             elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "GROUP"):
                 if (str(mytok[i+2].ttype) == 'Token.Keyword' and str(mytok[i+2].value) == "BY"):
                     i=i+2
-                    i = incrementIfWhitespace(mytok[i+1],i)
                     
+                    print mytok[i+1]
                     groupbyIdent = findIdentifierList(mytok[i+1])
 #                    print groupbyIdent
                     if (groupbyIdent is None): # Not found identifier list, have one group by attribute
@@ -112,17 +113,21 @@ def myParser(mytok, mytoklen):
             
             elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "ORDER"):
                 if (str(mytok[i+2].ttype) == 'Token.Keyword' and str(mytok[i+2].value) == "BY"):
-                    i=i+3#Go past order by
+                    i=i+2#Go past order by
+                    i = incrementIfWhitespace(mytok[i+1],i)
+                    i+=1
+                    
                     mytoklist = []
                     foundAttr = False
                     while (i <mytoklen and foundAttr is False):
-                        (foundAttr, mytoklist) = findIdentifierListWithKeywords(mytok[i],mytoklist)
+                        print "mytok: %s " %mytok[i]
+                        (foundAttr, mytoklist,foundAggregate) = findIdentifierListWithKeywords(mytok[i],mytoklist)
                         if (foundAttr):
                             i-=2
                             break;
-                        i+=1# this is the where loop at line 94
-                    queryobj.setOrderbyIdent(sqlparse.sql.IdentifierList(mytoklist))
-#                    queryclauses.getOrderbyIdent()
+                        i+=1# From where loop at line 53
+                    orderbyIdent = (sqlparse.sql.IdentifierList(mytoklist)).get_identifiers()
+                    queryobj.setOrderbyIdent(orderbyIdent)
                 i+=1
                 
             elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "HAVING"):
@@ -171,23 +176,24 @@ def findIdentifierList(token):
 # To account for aggregates, logical/comparison operators and other such keywords.
 # Used for Select and Order by Clauses 
 def findIdentifierListWithKeywords(token,mytoklist):
+    print "I got into findidentifierListWIthKeywords: %s" %token
     foundAttr = False
     curr = token
     foundAggregate = False
 #    print "TOken: %s" %token
     if (curr.ttype is None):
-        mytoklist.append(curr)
-#        if ("," in str(curr)):
-#            #After an aggregate is found, the clause is no longer an identifierList.
-#            commalist = str(curr).split()
-#            for  i in commalist:
-#                i = str(i).strip()
-#                itemtok = sql.Token(None,i)
-#                mytoklist.append(itemtok)
-#            print commalist
-#        else:
-##        print "Im on the None: %s"%curr
-#            mytoklist.append(curr)
+#        mytoklist.append(curr)
+        if ("," in str(curr)):
+            #After an aggregate is found, the clause is no longer an identifierList.
+            commalist = str(curr).split()
+            for  i in commalist:
+                i = str(i).strip()
+                itemtok = sql.Token(None,i)
+                mytoklist.append(itemtok)
+            print commalist
+        else:
+#        print "Im on the None: %s"%curr
+            mytoklist.append(curr)
     elif (curr.ttype is Token.Keyword):
         if (myhelper.isAggregate(curr)):
             mytoklist.append(curr)
@@ -195,13 +201,13 @@ def findIdentifierListWithKeywords(token,mytoklist):
         elif (myhelper.isLogicalOperator(curr)):
             mytoklist.append(curr)
         elif (myhelper.isOrderbyOperator(curr)):
+            print "ORder by ops found"
             mytoklist.append(curr)
         else:
             foundAttr = True
     elif (curr.ttype is Token.Punctuation):
         mytoklist.append(curr)
     else:
-        
 #        print "Im on the else: %s"%curr
         mytoklist.append(curr)
     return (foundAttr, mytoklist, foundAggregate)
@@ -209,27 +215,29 @@ def findIdentifierListWithKeywords(token,mytoklist):
 # Used for the case where the select clause contains only aggregates.
 #Parameters are of type: Identifier or IdentifierList
 def addSelectGroupbyAttributesIdents(selectid, groupbyid):
-    newIdent = " SELECT "#sqlparse.sql.IdentifierList
-    if (myhelper.checkIfList(groupbyid)):
-        for gid in groupbyid:
-            newIdent+=str(gid) + ", "
-    else:
-        newIdent+=str(groupbyid) + ", "
+    if (selectid and groupbyid):
+        newIdent = " SELECT "#sqlparse.sql.IdentifierList
+        if (myhelper.checkIfList(groupbyid)):
+            for gid in groupbyid:
+                newIdent+=str(gid) + ", "
+        else:
+            newIdent+=str(groupbyid) + ", "
+        
+        if(myhelper.checkIfList(selectid)):
+            for sid in selectid:
+                if(myhelper.isAggregate(sid)):
+                    newIdent+=str(sid) + " "
+                else:
+                    newIdent+=str(sid) + ", "
+        else:
+            newIdent+=str(selectid) + " "
     
-    if(myhelper.checkIfList(selectid)):
-        for sid in selectid:
-            if(myhelper.isAggregate(sid)):
-                newIdent+=str(sid) + " "
-            else:
-                newIdent+=str(sid) + ", "
-    else:
-        newIdent+=str(selectid) + " "
-
-    newIdent = newIdent.rstrip(", ")     
-
-    (mytok, mytoklen) = tokenizeUserInput (newIdent)
-    myobj = myParser(mytok,mytoklen)
-    return myobj.getSelectIdent()
+        newIdent = newIdent.rstrip(", ")     
+    
+        (mytok, mytoklen) = tokenizeUserInput (newIdent)
+        myobj = myParser(mytok,mytoklen)
+        return myobj.getSelectIdent()
+    return None
 
 
 #def parseIdentifierList(attributes):
@@ -242,9 +250,15 @@ if __name__ == "__main__":
     
     #Step 1: Get query from user
 #    userInput = getUserInput()
-    userInput = (" SELECT MAX(e.salary) "
-                 " FROM employee e "
-                 " group by e.id ")
+    userInput = ("SELECT e.id, e.dept_id "
+                 " FROM department d, employee e "
+                 " WHERE e.dept_id = d.id "
+                 " GROUP BY e.id, e.dept_id "
+                 " ORDER BY e.dept_id ")
+    
+    userInput = (" ORDER BY e.dept_id, f.house DESC ")
+    
+#    userInput = (" order by e.dept_id, d.id DESC ")
     
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = tokenizeUserInput (userInput)
@@ -253,13 +267,4 @@ if __name__ == "__main__":
     queryclauses = myParser(mytok, mytoklen)
     
     #Step 5: Display the clauses in the user query
-#    queryclauses.dispay()   
-#    selectid = queryclauses.getSelectIdent()
-#    groupbyid = queryclauses.getGroupbyIdent()
-#    
-#    print 'new'
-#
-#    selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectid)
-#    if (not selectIdentWithoutAggregates):
-#        print "No aggregates"
-#        print addSelectGroupbyAttributesIdents(selectid, groupbyid)
+    queryclauses.dispay()   

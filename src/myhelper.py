@@ -62,14 +62,16 @@ def removeListDuplicates(seq):
     [noDupes.append(i) for i in seq if not noDupes.count(i)]
     return noDupes
 
-def findSelectClauseWithoutAggregates(selectIdent):    
-    selectWithoutAggregates = []
-    for sid in selectIdent:
-        if (not isAggregate(sid)):
-            if (not "(" in str(sid)):
-                selectWithoutAggregates.append(sid)
-#    print selectWithoutAggregates
-    return selectWithoutAggregates
+def findSelectClauseWithoutAggregates(selectIdent):
+    if (selectIdent):
+        selectWithoutAggregates = []
+        for sid in selectIdent:
+            if (not isAggregate(sid)):
+                if (not "(" in str(sid)):
+                    selectWithoutAggregates.append(sid)
+    #    print selectWithoutAggregates
+        return selectWithoutAggregates
+    return None
 
 def findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues):
 
