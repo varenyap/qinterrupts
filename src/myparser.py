@@ -28,13 +28,6 @@ def getUserInput():
     return userInput
 
 def tokenizeUserInput(userInput):
-#    query1 = ("SELECT d.name, AVG (e.salary) "
-#              " FROM employee e, department d"
-#              " WHERE e.dept_id = d.id"
-#              " GROUP BY d.name")
-#    
-#    userInput = query1
-    
     fromattedquery = sqlparse.format(userInput,keyword_case = 'upper', identifier_case = 'lower', strip_comments = True)
     mystmt = sqlparse.parse(fromattedquery)[0]
 #    print "Statement: %s" %mystmt
@@ -62,10 +55,8 @@ def myParser(mytok, mytoklen):
             
             if (str(mytok[i].ttype) == 'Token.Keyword.DML' and str(mytok[i].value) == "SELECT"):
                 i = incrementIfWhitespace(mytok[i+1], i)
-                print mytok[i]
-                print mytok[i+1]
                 selectIdent = findIdentifierList(mytok[i+1])
-                print "selectIdent: %s" %selectIdent
+                
                 if (selectIdent is None):
                     mytoklist = []
                     foundAttr = False
@@ -102,11 +93,10 @@ def myParser(mytok, mytoklen):
                 if (str(mytok[i+2].ttype) == 'Token.Keyword' and str(mytok[i+2].value) == "BY"):
                     i=i+2
                     
-                    print mytok[i+1]
-                    groupbyIdent = findIdentifierList(mytok[i+1])
-#                    print groupbyIdent
+                    groupbyIdent = findIdentifierList(mytok[i+2])
                     if (groupbyIdent is None): # Not found identifier list, have one group by attribute
-                        groupbyIdent = mytok[i+1]
+                        groupbyIdent = mytok[i+2]
+                        print groupbyIdent
                     
                     queryobj.setGroupbyIdent(groupbyIdent)
                 i+=1
@@ -120,7 +110,6 @@ def myParser(mytok, mytoklen):
                     mytoklist = []
                     foundAttr = False
                     while (i <mytoklen and foundAttr is False):
-                        print "mytok: %s " %mytok[i]
                         (foundAttr, mytoklist,foundAggregate) = findIdentifierListWithKeywords(mytok[i],mytoklist)
                         if (foundAttr):
                             i-=2
@@ -176,7 +165,7 @@ def findIdentifierList(token):
 # To account for aggregates, logical/comparison operators and other such keywords.
 # Used for Select and Order by Clauses 
 def findIdentifierListWithKeywords(token,mytoklist):
-    print "I got into findidentifierListWIthKeywords: %s" %token
+#    print "I got into findidentifierListWIthKeywords: %s" %token
     foundAttr = False
     curr = token
     foundAggregate = False
@@ -201,7 +190,6 @@ def findIdentifierListWithKeywords(token,mytoklist):
         elif (myhelper.isLogicalOperator(curr)):
             mytoklist.append(curr)
         elif (myhelper.isOrderbyOperator(curr)):
-            print "ORder by ops found"
             mytoklist.append(curr)
         else:
             foundAttr = True
@@ -256,13 +244,12 @@ if __name__ == "__main__":
                  " GROUP BY e.id, e.dept_id "
                  " ORDER BY e.dept_id ")
     
-    userInput = (" ORDER BY e.dept_id, f.house DESC ")
+    userInput = (" GROUP BY e.dept_id ")
     
 #    userInput = (" order by e.dept_id, d.id DESC ")
     
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = tokenizeUserInput (userInput)
-    
     #Step 4: Parse the user query using the tokens created
     queryclauses = myParser(mytok, mytoklen)
     

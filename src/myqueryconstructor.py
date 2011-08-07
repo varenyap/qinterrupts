@@ -6,6 +6,10 @@ import myparser
 
 db = db_connection.Db_connection()
 
+def orderDistinctGroupbyValues(queryobj):
+    print "orderDistinctGroupbyValues"
+
+
 # This function is used exclusively by the findDistinctGroupbyalues
 def getGroupbyDistinctList(queryTable,groupbyIdent):
     if (queryTable is not None):
@@ -36,7 +40,6 @@ def findDistinctGroupbyValues(queryobj):
     groupbyIdent = queryobj.getGroupbyIdent()    
     fromIdent = queryobj.getFromIdent()
     
-#    print fromIdent
     queryTable =[]
     if ((groupbyIdent and fromIdent) is not None):
         if (myhelper.checkIfList(groupbyIdent)):
@@ -309,17 +312,25 @@ def writeToFile (queryList,bigQuery, queryTableMap):
     FILE.close()
 
 if __name__ == "__main__":
-    userInput = (" SELECT MAX(e.salary) "
-                 " FROM employee e "
-                 " group by e.id ")
+    
+    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
+                 " FROM employee e, department d "
+                 " GROUP BY e.id, e.dept_id "
+                 " ORDER BY e.dept_id DESC")
+    
+    userInput = ("SELECT e.dept_id, MAX(e.salary) "
+                 " FROM employee e, department d "
+                 " GROUP BY e.dept_id "
+                 " ORDER BY e.dept_id DESC")
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)
     queryobj = myparser.myParser(mytok, mytoklen)
 #    queryclauses.dispay()
     distinctGroupbyValues = findDistinctGroupbyValues(queryobj)
+    print distinctGroupbyValues
 
-#    # dictionary having the temp table as key and the query for that table as value 
-    subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
-##    print "\n\n\n\n\n\n\n"
-    constructBigQuery(subSelects)    
+    # dictionary having the temp table as key and the query for that table as value 
+#    subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
+###    print "\n\n\n\n\n\n\n"
+#    constructBigQuery(subSelects)    

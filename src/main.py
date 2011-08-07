@@ -11,9 +11,9 @@ if __name__ == "__main__":
     
     userInput = ("SELECT e.id, e.dept_id "
                  " FROM department d, employee e "
-                 " WHERE e.dept_id = d.id "
                  " GROUP BY e.id, e.dept_id "
-                 " ORDER BY e.dept_id ")
+                 " WHERE e.dept_id = d.id "
+                 " ORDER BY e.dept_id ASC")
     
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
@@ -25,28 +25,30 @@ if __name__ == "__main__":
     queryclausesobj = myparser.myParser(mytok, mytoklen)
     
     #Step 5: Display the clauses in the user query
-    queryclausesobj.dispay()
+#    queryclausesobj.dispay()
     
     #############################################################################################    
-#    print "------------------------------------------------------------------------------------"
-#    print userInput
-#    print "------------------------------------------------------------------------------------"
-#
-#    #Step 1: Find the distinct values of the group-by attribute
-#    distinctGroupbyValues = myqueryconstructor.findDistinctGroupbyValues(queryclausesobj)
-#    print distinctGroupbyValues
-#    
-#    #Step 2: construct the sub selects for each distinct value represented in the group by clause
-#    # dictionary having the temp table as key and the query for that table as value 
+    print "------------------------------------------------------------------------------------"
+    print userInput
+    print "------------------------------------------------------------------------------------"
+
+    #Step 1: Find the distinct values of the group-by attribute
+    distinctGroupbyValues = myqueryconstructor.findDistinctGroupbyValues(queryclausesobj)
+    print distinctGroupbyValues
+    
+    #Step 2: Use the ORDER BY condition to order the group by values
+    myqueryconstructor.orderDistinctGroupbyValues(queryclausesobj) 
+    
+    #Step 2: construct the sub selects for each distinct value represented in the group by clause
+    # dictionary having the temp table as key and the query for that table as value 
 #    subSelects = myqueryconstructor.constructSubSelects (queryclausesobj, distinctGroupbyValues)
 #
 #    # Step 3: Union the small queries to evaluate the big query
 #    myqueryconstructor.constructBigQuery(subSelects)
-#    
-#    print "Script created!"
+    
+    print "Script created!"
 
 
 
     
     
-
