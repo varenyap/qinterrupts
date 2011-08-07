@@ -9,11 +9,15 @@ if __name__ == "__main__":
     #Step 1: Get query from user
 #    userInput = getUserInput()
     
-    userInput = ("SELECT e.id, e.dept_id "
-                 " FROM department d, employee e "
+    userInput = ("SELECT e.dept_id, MAX(e.salary) "
+                 " FROM employee e, department d "
+                 " GROUP BY e.dept_id "
+                 " ORDER BY e.dept_id DESC")
+    
+    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
+                 " FROM employee e, department d "
                  " GROUP BY e.id, e.dept_id "
-                 " WHERE e.dept_id = d.id "
-                 " ORDER BY e.dept_id ASC")
+                 " ORDER BY e.dept_id DESC")
     
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
@@ -36,15 +40,12 @@ if __name__ == "__main__":
     distinctGroupbyValues = myqueryconstructor.findDistinctGroupbyValues(queryclausesobj)
     print distinctGroupbyValues
     
-    #Step 2: Use the ORDER BY condition to order the group by values
-    myqueryconstructor.orderDistinctGroupbyValues(queryclausesobj) 
-    
     #Step 2: construct the sub selects for each distinct value represented in the group by clause
     # dictionary having the temp table as key and the query for that table as value 
-#    subSelects = myqueryconstructor.constructSubSelects (queryclausesobj, distinctGroupbyValues)
-#
-#    # Step 3: Union the small queries to evaluate the big query
-#    myqueryconstructor.constructBigQuery(subSelects)
+    subSelects = myqueryconstructor.constructSubSelects (queryclausesobj, distinctGroupbyValues)
+
+    # Step 3: Union the small queries to evaluate the big query
+    myqueryconstructor.constructBigQuery(subSelects)
     
     print "Script created!"
 

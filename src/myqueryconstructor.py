@@ -6,10 +6,6 @@ import myparser
 
 db = db_connection.Db_connection()
 
-def orderDistinctGroupbyValues(queryobj):
-    print "orderDistinctGroupbyValues"
-
-
 # This function is used exclusively by the findDistinctGroupbyalues
 def getGroupbyDistinctList(queryTable,groupbyIdent):
     if (queryTable is not None):
@@ -24,6 +20,7 @@ def getGroupbyDistinctList(queryTable,groupbyIdent):
         returnList = {}
         i = 0
         for query in queryTable:
+            print query
             results = db.allrows(query)    
             vals = []
             for rs in results:
@@ -35,10 +32,17 @@ def getGroupbyDistinctList(queryTable,groupbyIdent):
         return returnList
     return None
 
+#Creates the queries required to execute against the database
 def findDistinctGroupbyValues(queryobj):
 
     groupbyIdent = queryobj.getGroupbyIdent()    
     fromIdent = queryobj.getFromIdent()
+    orderbyIdent = queryobj.getOrderbyIdent()
+    orderbyClause = ""
+    if (orderbyIdent is not None):
+        orderbyClause = " ORDER BY "
+        for oid in orderbyIdent:
+            orderbyClause+= str(oid) + " "
     
     queryTable =[]
     if ((groupbyIdent and fromIdent) is not None):
@@ -60,6 +64,7 @@ def findDistinctGroupbyValues(queryobj):
                 else:
                     query += str(fromIdent)
 #                print query 
+                query+= orderbyClause
                 queryTable.append(query)
         else:#dont have a group-by list"
             gAlias = groupbyIdent.get_parent_name()
@@ -69,9 +74,11 @@ def findDistinctGroupbyValues(queryobj):
                         query = " SELECT DISTINCT " + str(groupbyIdent) + " FROM " + str(fid)
             else:
                 query = " SELECT DISTINCT " + str(groupbyIdent) + " FROM " + str(fromIdent)
-            
+                
+            query+= orderbyClause
             queryTable.append(query)
         resultset= None
+         
         resultset = getGroupbyDistinctList(queryTable,groupbyIdent)
 #        print resultset
         return resultset
@@ -194,8 +201,9 @@ def createQueryNotAggregate(iterations, numRows,sid, selectList, tempTableList, 
     
     while (iterations <numRows): # Max combinations possible.
         currLength = len(distinctGroupbyValues[str(sid)])
-        numItems = currLength
-        while (numItems > 0):
+#        numItems = currLength
+        numItems = 0
+        while (numItems < currLength):
             if (iterations in selectList):
                 selectClause = selectList[iterations]
                 fromClause = tempTableList[iterations]
@@ -207,7 +215,8 @@ def createQueryNotAggregate(iterations, numRows,sid, selectList, tempTableList, 
                 whereClause = ""
                             
             attr = str(sid)
-            attrValue = str(distinctGroupbyValues[str(sid)][numItems-1])
+            attrValue = str(distinctGroupbyValues[str(sid)][numItems])
+#            print "attrValue: %s" %attrValue
         
             selectClause+= "'"+ attrValue + "'::Text" + " AS " + myhelper.remAggregate(attr) + " , "
             fromClause += myhelper.remAggregate(attr) +"_" + myhelper.remAggregate(attrValue) + "_"
@@ -222,7 +231,7 @@ def createQueryNotAggregate(iterations, numRows,sid, selectList, tempTableList, 
             selectIntoList[iterations] = " INTO " +  selectIntoClause
             whereList[iterations] = whereClause
                         
-            numItems-=1
+            numItems+=1
             iterations+=1  
 
     return (selectList,tempTableList,whereList, selectIntoList)
@@ -232,7 +241,8 @@ def createQueryNotAggregate(iterations, numRows,sid, selectList, tempTableList, 
 def createReturnValues(numRows, selectList, selectIntoList, whereList, queryList, tempTableList,
                        orgWhereClause, orgFromClause, addBigWhere, bigSelect):
     queryTableMap = {} # to map the query executed and the new table created.
-    iterations = 0        
+    iterations = 0     
+    
     while(iterations <numRows):
         selectList[iterations] = selectList[iterations].rstrip(" , ")            
         selectIntoList[iterations] = selectIntoList[iterations].rstrip(" _ ")
@@ -243,6 +253,7 @@ def createReturnValues(numRows, selectList, selectIntoList, whereList, queryList
             whereList[iterations] = orgWhereClause + whereList[iterations]
             
         queryList[iterations] = selectList[iterations] + selectIntoList[iterations] + orgFromClause +  whereList[iterations]
+        print queryList[iterations]
                 
         tempTableList[iterations] = (tempTableList[iterations].rstrip("_")).lstrip(" FROM ")
         tempTable = tempTableList[iterations]
@@ -250,7 +261,7 @@ def createReturnValues(numRows, selectList, selectIntoList, whereList, queryList
         queryTableMap[tempTable] = subquery
             
         iterations+=1
-        
+    
     retVal = []
     retVal.append(queryTableMap)
     retVal.append(queryList)
@@ -318,10 +329,10 @@ if __name__ == "__main__":
                  " GROUP BY e.id, e.dept_id "
                  " ORDER BY e.dept_id DESC")
     
-    userInput = ("SELECT e.dept_id, MAX(e.salary) "
-                 " FROM employee e, department d "
-                 " GROUP BY e.dept_id "
-                 " ORDER BY e.dept_id DESC")
+#    userInput = ("SELECT e.dept_id, MAX(e.salary) "
+#                 " FROM employee e, department d "
+#                 " GROUP BY e.dept_id "
+#                 " ORDER BY e.dept_id DESC")
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)
@@ -331,6 +342,6 @@ if __name__ == "__main__":
     print distinctGroupbyValues
 
     # dictionary having the temp table as key and the query for that table as value 
-#    subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
-###    print "\n\n\n\n\n\n\n"
-#    constructBigQuery(subSelects)    
+    subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
+##    print "\n\n\n\n\n\n\n"
+    constructBigQuery(subSelects)    

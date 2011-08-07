@@ -96,7 +96,6 @@ def myParser(mytok, mytoklen):
                     groupbyIdent = findIdentifierList(mytok[i+2])
                     if (groupbyIdent is None): # Not found identifier list, have one group by attribute
                         groupbyIdent = mytok[i+2]
-                        print groupbyIdent
                     
                     queryobj.setGroupbyIdent(groupbyIdent)
                 i+=1
