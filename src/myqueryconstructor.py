@@ -38,11 +38,17 @@ def findDistinctGroupbyValues(queryobj):
     groupbyIdent = queryobj.getGroupbyIdent()    
     fromIdent = queryobj.getFromIdent()
     orderbyIdent = queryobj.getOrderbyIdent()
+    addOrderby = False
     orderbyClause = ""
     if (orderbyIdent is not None):
         orderbyClause = " ORDER BY "
         for oid in orderbyIdent:
-            orderbyClause+= str(oid) + " "
+            if (myhelper.isOrderbyOperator(oid)):
+                orderbyClause+= str(oid) + ", "
+            else:
+                orderbyClause+= str(oid) + " "
+        orderbyClause = orderbyClause.strip(", ")
+    print orderbyClause
     
     queryTable =[]
     if ((groupbyIdent and fromIdent) is not None):
@@ -50,6 +56,8 @@ def findDistinctGroupbyValues(queryobj):
             for gid in groupbyIdent:
                 gAlias = gid.get_parent_name()
                 query = " SELECT DISTINCT " + str(gid) + " FROM "
+                if (str(gid) in orderbyClause):
+                    addOrderby = True
                 if (myhelper.checkIfList(fromIdent)): # have a from list and group-by list
                     for fid in fromIdent:
 #                        print "fid:%s and gAlias:%s" %(fid.get_alias(),gAlias)
@@ -64,7 +72,9 @@ def findDistinctGroupbyValues(queryobj):
                 else:
                     query += str(fromIdent)
 #                print query 
-                query+= orderbyClause
+                if (addOrderby):
+                    query+= " " + orderbyClause
+                    addOrderby = False
                 queryTable.append(query)
         else:#dont have a group-by list"
             gAlias = groupbyIdent.get_parent_name()
@@ -74,8 +84,11 @@ def findDistinctGroupbyValues(queryobj):
                         query = " SELECT DISTINCT " + str(groupbyIdent) + " FROM " + str(fid)
             else:
                 query = " SELECT DISTINCT " + str(groupbyIdent) + " FROM " + str(fromIdent)
-                
-            query+= orderbyClause
+            if (str(groupbyIdent) in orderbyClause):
+                addOrderby = True
+            if (addOrderby):
+                    query+= " " + orderbyClause
+                    addOrderby = False
             queryTable.append(query)
         resultset= None
          
@@ -327,7 +340,7 @@ if __name__ == "__main__":
     userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
                  " FROM employee e, department d "
                  " GROUP BY e.id, e.dept_id "
-                 " ORDER BY e.dept_id DESC")
+                 " ORDER BY e.dept_id DESC, e.id ASC")
     
 #    userInput = ("SELECT e.dept_id, MAX(e.salary) "
 #                 " FROM employee e, department d "

@@ -18,6 +18,17 @@ if __name__ == "__main__":
                  " FROM employee e, department d "
                  " GROUP BY e.id, e.dept_id "
                  " ORDER BY e.dept_id DESC")
+#    
+#    userInput = (" SELECT e.dept_id, MAX(e.salary) "
+#                 " FROM employee e, department d "
+#                 " GROUP BY e.dept_id " 
+#                 " ORDER BY MAX(e.salary) DESC")
+
+#    userInput = (" SELECT e.dept_id, d.id, MAX(e.salary) "
+#                 " FROM employee e, department d "
+#                 " GROUP BY e.dept_id, d.id "
+#                 " ORDER BY MAX(e.salary) ")
+    
     
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
