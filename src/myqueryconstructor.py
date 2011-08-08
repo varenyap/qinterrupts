@@ -20,13 +20,13 @@ def getGroupbyDistinctList(queryTable,groupbyIdent):
         returnList = {}
         i = 0
         for query in queryTable:
-#            print query
+            print query
             results = db.allrows(query)    
             vals = []
             for rs in results:
                 vals.append(str(rs[0]))
             returnList[groupbyattr[i]] = vals
-                
+#                
             i+=1
 #        print returnList
         return returnList
@@ -74,7 +74,7 @@ def findDistinctGroupbyValues(queryobj):
                     query += str(fromIdent)
 #                print query 
                 if (addOrderby):
-                    query+= " " + orderbyClause
+#                    query+= " " + orderbyClause
                     addOrderby = False
                 queryTable.append(query)
         else:#dont have a group-by list"
@@ -88,7 +88,7 @@ def findDistinctGroupbyValues(queryobj):
             if (str(groupbyIdent) in orderbyClause):
                 addOrderby = True
             if (addOrderby):
-                    query+= " " + orderbyClause
+#                    query+= " " + orderbyClause
                     addOrderby = False
             queryTable.append(query)
         resultset= None
@@ -185,6 +185,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                             addBigWhere = "WHERE " +lastAgg+ "_"+ myhelper.remAggregate(str(sid)) + " IS NOT NULL AND "
                             selectList[iterations]= selectClause
                             iterations+=1
+                        lastAgg = ""
 
                 else:#Found an aggregate
                     lastAgg = str(sid).lower()
@@ -259,12 +260,13 @@ def findStringOrderbyClause(queryobj):
             if (myhelper.isAggregate(oid)):
                 orderbyClause+= myhelper.remAggregate(str(oid)) + "_"
             elif (myhelper.isOrderbyOperator(oid)):
-                orderbyClause+= myhelper.remAggregate(str(oid)) + ", "
+                orderbyClause = orderbyClause.strip(", ")
+                orderbyClause+= " " + myhelper.remAggregate(str(oid)) + ", "
             else:
-                orderbyClause+= myhelper.remAggregate(str(oid)) + " "
+                orderbyClause+= myhelper.remAggregate(str(oid)) + ", "
     orderbyClause = orderbyClause.strip("_")
     orderbyClause = orderbyClause.strip(", ")
-    
+
     return orderbyClause
 
 # This function is used by the constructSubSelects() function to create the  
@@ -394,7 +396,10 @@ if __name__ == "__main__":
 #                 " FROM employee e "
 #                 " GROUP BY e.dept_id, e.id ")
 
-    
+    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
+                 " FROM employee e, department d, employee_skill es "
+                 " GROUP BY e.id, e.dept_id, es.skill "
+                 " ORDER BY e.dept_id DESC, e.id ASC, es.skill, MAX(e.salary) " )
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)
