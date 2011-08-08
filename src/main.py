@@ -49,17 +49,17 @@ if __name__ == "__main__":
 #                 " GROUP BY e.dept_id, d.id "
 #                 " ORDER BY MAX(e.salary) ")
     
-#    userInput = (" SELECT e.dept_id, MAX(e.salary) "
-#                 " FROM employee e, department d "
-#                 " GROUP BY e.dept_id " 
-#                 " ORDER BY MAX(e.salary) DESC")
+    userInput = (" SELECT e.dept_id, MAX(e.salary) "
+                 " FROM employee e, department d "
+                 " GROUP BY e.dept_id " 
+                 " ORDER BY MAX(e.salary) DESC")
     
-    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
-                 " FROM employee e, department d, employee_skill es "
-                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
-                 " GROUP BY d.name,es.skill,e.name "
-                 " ORDER BY es.skill ")
-#    
+#    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
+#                 " FROM employee e, department d, employee_skill es "
+#                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
+#                 " GROUP BY d.name,es.skill,e.name "
+#                 " ORDER BY es.skill ")
+##    
 #    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
 #                 " FROM employee e, department d, employee_skill es "
 #                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
