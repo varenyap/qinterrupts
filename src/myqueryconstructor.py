@@ -20,7 +20,7 @@ def getGroupbyDistinctList(queryTable,groupbyIdent):
         returnList = {}
         i = 0
         for query in queryTable:
-            print query
+#            print query
             results = db.allrows(query)    
             vals = []
             for rs in results:
@@ -37,9 +37,11 @@ def findDistinctGroupbyValues(queryobj):
 
     groupbyIdent = queryobj.getGroupbyIdent()    
     fromIdent = queryobj.getFromIdent()
-    orderbyIdent = queryobj.getOrderbyIdent()
+    
+    #Find order by clause 
     addOrderby = False
     orderbyClause = ""
+    orderbyIdent = queryobj.getOrderbyIdent()
     if (orderbyIdent is not None):
         orderbyClause = " ORDER BY "
         for oid in orderbyIdent:
@@ -48,7 +50,6 @@ def findDistinctGroupbyValues(queryobj):
             else:
                 orderbyClause+= str(oid) + " "
         orderbyClause = orderbyClause.strip(", ")
-    print orderbyClause
     
     queryTable =[]
     if ((groupbyIdent and fromIdent) is not None):
@@ -112,6 +113,7 @@ def findDistinctGroupbyValues(queryobj):
 #                return fid.get_real_name()
 #    return False
 
+# Used in constructSubselects
 def findStringFromWhereClauses(queryobj):
     
     fromIdent = queryobj.getFromIdent()
@@ -145,26 +147,17 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         
         #First, check if there are any non-aggregates in the select clause
         selectIdent = queryobj.getSelectIdent()
-        selectGroupbyIdent = queryobj.getSelectGroupbyIdent()
-        if (selectGroupbyIdent is not None):
-            selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectGroupbyIdent)
-            newSelectIdent  = selectGroupbyIdent
-            
-            #Since we modify the select clause for the sub queries, we have to modify the select clause
-            # in the big query as well.
-            for id in selectIdent:
-                if (myhelper.isAggregate(id)):
-                    bigSelect+= myhelper.remAggregate(str(id)) + "_"
-                else:
-                    bigSelect+= myhelper.remAggregate(str(id)) + ", "
-            bigSelect = bigSelect.strip("_")
-            bigSelect = bigSelect.strip(", ")        
+        newSelectIdent = queryobj.getNewSelectIdent()
+#        selectGroupbyIdent = queryobj.getSelectGroupbyIdent()
+        selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(newSelectIdent)
         
-        else:
-            # Find all non-aggregate attributes in the select clause
-            #Logic: Columns in the SELECT clause which are not in the GROUP BY clause must be part of an AGGREGATE function.
-            selectIdentWithoutAggregates = myhelper.findSelectClauseWithoutAggregates(selectIdent)
-            newSelectIdent  = selectIdent
+        for id in selectIdent:
+            if (myhelper.isAggregate(id)):
+                    bigSelect+= myhelper.remAggregate(str(id)) + "_"
+            else:
+                bigSelect+= myhelper.remAggregate(str(id)) + ", "
+        bigSelect = bigSelect.strip("_")
+        bigSelect = bigSelect.strip(", ")
         
         (orgFromClause,orgWhereClause) = findStringFromWhereClauses(queryobj)
         
@@ -200,11 +193,12 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                 (selectList,tempTableList,whereList, selectIntoList) = createQueryNotAggregate(iterations,numRows,sid,
                                                                       selectList,tempTableList,whereList,
                                                                        selectIntoList,distinctGroupbyValues,containsAggregate)
-
+#        #Find the orderbyClause to add to the bigquery
+        orderbyClause = findStringOrderbyClause(queryobj)
         
         #Creating the final query from the sub-parts we already have.
         return createReturnValues (numRows, selectList, selectIntoList, whereList, queryList,
-                                   tempTableList, orgWhereClause, orgFromClause, addBigWhere, bigSelect.lower())
+                                   tempTableList, orgWhereClause, orgFromClause, addBigWhere, bigSelect.lower(),orderbyClause)
 
 
 # This function is used by the constructSubSelects() function to create the  
@@ -245,20 +239,40 @@ def createQueryNotAggregate(iterations, numRows,sid, selectList, tempTableList, 
             whereList[iterations] = whereClause
                         
             numItems+=1
-            iterations+=1  
-
+            iterations+=1
+      
     return (selectList,tempTableList,whereList, selectIntoList)
+
+def findStringOrderbyClause(queryobj):
+
+    #Find the orderbyClause to add to the bigquery
+    orderbyClause = ""
+    orderbyIdent = queryobj.getOrderbyIdent()
+    if (orderbyIdent is  not None):
+        orderbyClause = " ORDER BY "
+        for oid in orderbyIdent:
+            if (myhelper.isAggregate(oid)):
+                orderbyClause+= myhelper.remAggregate(str(oid)) + "_"
+            elif (myhelper.isOrderbyOperator(oid)):
+                orderbyClause+= myhelper.remAggregate(str(oid)) + ", "
+            else:
+                orderbyClause+= myhelper.remAggregate(str(oid)) + " "
+    orderbyClause = orderbyClause.strip("_")
+    orderbyClause = orderbyClause.strip(", ")
+    
+    return orderbyClause
 
 # This function is used by the constructSubSelects() function to create the  
 # return values for the function constructBigQuery()
 def createReturnValues(numRows, selectList, selectIntoList, whereList, queryList, tempTableList,
-                       orgWhereClause, orgFromClause, addBigWhere, bigSelect):
+                       orgWhereClause, orgFromClause, addBigWhere, bigSelect,orderbyClause):
     queryTableMap = {} # to map the query executed and the new table created.
     iterations = 0     
     
     while(iterations <numRows):
-        selectList[iterations] = selectList[iterations].rstrip(" , ")            
-        selectIntoList[iterations] = selectIntoList[iterations].rstrip(" _ ")
+        selectList[iterations] = selectList[iterations].rstrip(" , ")  
+        selectIntoList[iterations]+= str(iterations)#adding iterations in case the groupby values are the same for attributes 
+#        selectIntoList[iterations] = selectIntoList[iterations].rstrip(" _ ")
         if orgWhereClause is None:
             whereList[iterations] = whereList[iterations].lstrip(" AND ")
             whereList[iterations] = " WHERE " + whereList[iterations]
@@ -266,48 +280,64 @@ def createReturnValues(numRows, selectList, selectIntoList, whereList, queryList
             whereList[iterations] = orgWhereClause + whereList[iterations]
             
         queryList[iterations] = selectList[iterations] + selectIntoList[iterations] + orgFromClause +  whereList[iterations]
-        print queryList[iterations]
-                
+#        print queryList[iterations]
+        
+        tempTableList[iterations]+= str(iterations)
         tempTableList[iterations] = (tempTableList[iterations].rstrip("_")).lstrip(" FROM ")
         tempTable = tempTableList[iterations]
         subquery = queryList[iterations]
         queryTableMap[tempTable] = subquery
             
         iterations+=1
-    
+        
     retVal = []
     retVal.append(queryTableMap)
     retVal.append(queryList)
     retVal.append(addBigWhere.rstrip(" AND "))
     retVal.append (bigSelect)      
+    retVal.append(orderbyClause)
     return retVal
-        
+    
 def constructBigQuery(subSelects):
     if (subSelects):
         queryTableMap = subSelects [0]
         queryList = subSelects[1]
         addBigWhere = subSelects [2]
         bigSelect = subSelects[3]
+        orderbyClause = subSelects[4]
+        
+        interimSelectClause = "SELECT * FROM "
+        interimQuery = ""
+        #INTO final_output_table
         
         if (bigSelect is ""):
             selectClause = " SELECT * FROM "
         else:
-            selectClause = "SELECT " + bigSelect + " FROM "
+            selectClause = "SELECT " + bigSelect + " FROM " #If query has only aggregates in select clause
         
         bigQuery = ""
         union = " UNION "
         for item in queryTableMap.iteritems():
             if (addBigWhere is not None):
-                bigQuery += selectClause + str(item[0]) + " " + addBigWhere + union
+#                bigQuery += selectClause + str(item[0]) + " " + addBigWhere + union
+                interimQuery+= interimSelectClause + str(item[0]) + " " + addBigWhere + union                 
             else:
-                bigQuery += selectClause + str(item[0]) + " " + union
+#                bigQuery += selectClause + str(item[0]) + " " + union
+                interimQuery+= interimSelectClause + str(item[0]) + " " + union
 
-        bigQuery = bigQuery[:-6]
-        writeToFile (queryList, bigQuery, queryTableMap)
+        index = interimQuery.find (" FROM ")
+        interimQuery = interimQuery[:index] + " INTO final_output_table " + interimQuery[index:]
+        interimQuery = interimQuery[:-6]
+        
+#        bigQuery = bigQuery[:-6]
+        bigQuery = selectClause + " final_output_table "
+        bigQuery+= orderbyClause #Add the order by clause to final query
+                
+        writeToFile (queryList, bigQuery, queryTableMap,interimQuery)
 
 #Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
 #used by the function constructBigQuery()
-def writeToFile (queryList,bigQuery, queryTableMap):
+def writeToFile (queryList,bigQuery, queryTableMap,interimQuery):
     triplequote = (""" "" """).strip() + (""" " """).strip()
 
     filename = "scripts.py"
@@ -321,35 +351,48 @@ def writeToFile (queryList,bigQuery, queryTableMap):
         
         # Drop if exists the temp tables we are about to create
         FILE.write('# If the temp tables we are about to create exist, drop them!\n')
+        FILE.write("db.make_query(" + triplequote + "drop table if exists final_output_table cascade" + triplequote + ")\n")
         for tempTable,query in queryTableMap.iteritems():
             drop = """db.make_query(""" + triplequote + "drop table if exists " + str(tempTable) + " cascade;" +triplequote + """)\n"""
             FILE.write(drop)        
         
-        FILE.write('\n# Make a db call and run the sub queries that will collectively evaluate to the main query result\n')
+        
+        FILE.write('\n\n# Make a db call and run the sub queries that will collectively evaluate to the main query result\n')
         for key,query in queryList.iteritems():
             query = """db.make_query(""" + triplequote + str(query) + triplequote + """)\n"""
             FILE.write(query)        
         
         FILE.write('\n# The query that combines the results of small queries\n')
-        FILE.write('bigQuery = '+triplequote + bigQuery+ triplequote + '\n\n')
-        FILE.write('db.make_pquery(bigQuery)\n')
+        FILE.write('interimQuery = '+triplequote + interimQuery+ triplequote + '\n\n')
+        FILE.write('db.make_query(interimQuery)\n\n')
+        FILE.write('db.make_pquery(' + triplequote + bigQuery +triplequote + ')')
     FILE.close()
 
 if __name__ == "__main__":
     
-    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
-                 " FROM employee e, department d "
-                 " GROUP BY e.id, e.dept_id "
-                 " ORDER BY e.dept_id DESC, e.id ASC")
+#    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
+#                 " FROM employee e, department d "
+#                 " GROUP BY e.id, e.dept_id "
+#                 " ORDER BY e.dept_id DESC, e.id ASC")
+
+    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
+                 " FROM employee e, department d, employee_skill es "
+                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
+                 " GROUP BY d.name,es.skill,e.name ")
     
 #    userInput = ("SELECT e.dept_id, MAX(e.salary) "
 #                 " FROM employee e, department d "
 #                 " GROUP BY e.dept_id "
 #                 " ORDER BY e.dept_id DESC")
     
+    
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)
     queryobj = myparser.myParser(mytok, mytoklen)
+    #############################################################################################    
+    print "------------------------------------------------------------------------------------"
+    print userInput
+    print "------------------------------------------------------------------------------------"
 #    queryclauses.dispay()
     distinctGroupbyValues = findDistinctGroupbyValues(queryobj)
     print distinctGroupbyValues

@@ -12,13 +12,13 @@ if __name__ == "__main__":
     userInput = ("SELECT e.dept_id, MAX(e.salary) "
                  " FROM employee e, department d "
                  " GROUP BY e.dept_id "
-                 " ORDER BY e.dept_id DESC")
+                 " ORDER BY e.dept_id")
     
-    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
-                 " FROM employee e, department d "
-                 " GROUP BY e.id, e.dept_id "
-                 " ORDER BY e.dept_id DESC")
-#    
+#    userInput = ("SELECT e.id, e.dept_id "
+#                 " FROM employee e "
+#                 " GROUP BY e.id, e.dept_id "
+#                 " ORDER BY e.dept_id DESC")
+    
 #    userInput = (" SELECT e.dept_id, MAX(e.salary) "
 #                 " FROM employee e, department d "
 #                 " GROUP BY e.dept_id " 
@@ -29,6 +29,26 @@ if __name__ == "__main__":
 #                 " GROUP BY e.dept_id, d.id "
 #                 " ORDER BY MAX(e.salary) ")
     
+    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
+                 " FROM employee e, department d, employee_skill es "
+                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
+                 " GROUP BY d.name,es.skill,e.name "
+                 " ORDER BY es.skill ")
+    
+    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
+                 " FROM employee e, department d, employee_skill es "
+                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
+                 " GROUP BY d.name,es.skill,e.name "
+                 " ORDER BY e.name DESC")
+                 
+#    userInput = ("SELECT d.name, e.name "
+#                 " FROM employee e, department d, employee_skill es "
+#                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
+#                 " GROUP BY d.name,es.skill,e.name ")
+#    
+#    userInput = (" SELECT AVG(e.salary) "
+#                 " FROM employee e "
+#                 " GROUP BY e.dept_id ")
     
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)

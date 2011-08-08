@@ -18,6 +18,7 @@ class myqueryclauses:
         orderbyIdent = None
         havingIdent = None
         selectGroupbyIdent = None
+        newSelectIdent = None
         selectContainsAggregate = False
         
 #        selectIdent = sqlparse.sql.IdentifierList()
@@ -43,6 +44,8 @@ class myqueryclauses:
         self.selectContainsAggregate = val
     def setSelectGroupbyIdent (self,ident):
         self.selectGroupbyIdent = ident
+    def setNewSelectIdent (self,ident):
+        self.newSelectIdent = ident
     
     def getSelectIdent (self):
 #        print "SELECT IDENTIFIERS:^^^^^^%s^^^^^"%self.selectIdent
@@ -66,6 +69,10 @@ class myqueryclauses:
         return self.selectContainsAggregate
     def getSelectGroupbyIdent (self):
         return  self.selectGroupbyIdent
+    
+    def getNewSelectIdent (self):
+        return self.newSelectIdent
+   
    
     def getAll(self):
         retVal = []

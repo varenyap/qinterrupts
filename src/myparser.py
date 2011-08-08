@@ -132,11 +132,13 @@ def myParser(mytok, mytoklen):
 #                queryclauses.getHavingIdent()
             i+=1
     
-    selectIdentWithoutAggreagates = myhelper.findSelectClauseWithoutAggregates(queryobj.getSelectIdent())
-    if (not selectIdentWithoutAggreagates):
-        newIdent = addSelectGroupbyAttributesIdents(queryobj.getSelectIdent(), queryobj.getGroupbyIdent())
-        queryobj.setSelectGroupbyIdent(newIdent)
-#    print queryobj.getSelectGroupbyIdent()
+    #FInd new Identity
+    selectid = queryobj.getSelectIdent()
+    groupbyid = queryobj.getGroupbyIdent()
+    newIdent = findNewSelectIdent(selectid, groupbyid)
+    queryobj.setNewSelectIdent(newIdent)
+    
+
     return queryobj
 
     
@@ -227,6 +229,38 @@ def addSelectGroupbyAttributesIdents(selectid, groupbyid):
     return None
 
 
+# Used for the case where the select clause contains only aggregates.
+#Parameters are of type: Identifier or IdentifierList
+def findNewSelectIdent(selectid, groupbyid):
+    
+    if (selectid and groupbyid):
+        newIdent = " SELECT "#sqlparse.sql.IdentifierList
+        if (myhelper.checkIfList(groupbyid)):
+            for gid in groupbyid:
+                newIdent+=str(gid) + ", "
+        else:
+            newIdent+=str(groupbyid) + ", "
+        
+        if(myhelper.checkIfList(selectid)):
+            for sid in selectid:
+                if(myhelper.isAggregate(sid)):
+                    newIdent+=str(sid) + " "
+                elif ("(" in str(sid)):
+                    newIdent+=str(sid) + ", "
+#                else:
+#                    newIdent+=str(sid) + ", "
+        else:
+            newIdent+=str(selectid) + " "
+    
+        newIdent = newIdent.rstrip(", ")     
+    
+        (mytok, mytoklen) = tokenizeUserInput (newIdent)
+        myobj = myParser(mytok,mytoklen)
+        return myobj.getSelectIdent()
+    return None
+
+
+
 #def parseIdentifierList(attributes):
 #    print attributes
 #    print attributes[0].get_real_name()
@@ -237,16 +271,18 @@ if __name__ == "__main__":
     
     #Step 1: Get query from user
 #    userInput = getUserInput()
-    userInput = ("SELECT e.id, e.dept_id "
+    userInput = ("SELECT MAX(e.id) "
                  " FROM department d, employee e "
                  " WHERE e.dept_id = d.id "
                  " GROUP BY e.id, e.dept_id "
                  " ORDER BY e.dept_id ")
     
-    userInput = (" GROUP BY e.dept_id ")
+    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
+                 " FROM employee e, department d, employee_skill es "
+                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
+                 " GROUP BY d.name,es.skill,e.name ")
     
-#    userInput = (" order by e.dept_id, d.id DESC ")
-    
+    print userInput
     #Step 2: Tokenize the query give by the user
     (mytok, mytoklen) = tokenizeUserInput (userInput)
     #Step 4: Parse the user query using the tokens created
