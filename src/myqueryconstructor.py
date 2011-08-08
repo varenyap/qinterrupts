@@ -164,11 +164,16 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
         #Finding the number of rows that the original group by would have.
         numRows = myhelper.findGroupbyRows(selectIdentWithoutAggregates,distinctGroupbyValues)
         
+        
+#        for ns in newSelectIdent:
+#            print ns
+#        print "Select ident:  <-------------------------" 
+        
         for sid in newSelectIdent:
             iterations = 0
             containsAggregate = queryobj.getSelectContainsAggregate()
             if (containsAggregate):
-                if (not myhelper.isAggregate(sid)): # selectClause has an attribute but sid is not an aggregate
+                if (not myhelper.isAggregate(sid)): # selectClause has an aggregate but sid is not an aggregate
                     if (lastAgg is ""): #The last seen attribute was not an aggregate
                         (selectList,tempTableList,whereList, selectIntoList) = createQueryNotAggregate(iterations,numRows,sid,
                                                                               selectList,tempTableList,whereList,
@@ -189,7 +194,7 @@ def constructSubSelects (queryobj, distinctGroupbyValues):
                         selectList[iterations]= selectClause
                         iterations+=1
             
-            else: # selectClause does not have an attribute
+            else: # selectClause does not have an aggregate
                 (selectList,tempTableList,whereList, selectIntoList) = createQueryNotAggregate(iterations,numRows,sid,
                                                                       selectList,tempTableList,whereList,
                                                                        selectIntoList,distinctGroupbyValues,containsAggregate)
@@ -384,6 +389,11 @@ if __name__ == "__main__":
 #                 " FROM employee e, department d "
 #                 " GROUP BY e.dept_id "
 #                 " ORDER BY e.dept_id DESC")
+
+#    userInput = (" SELECT e.dept_id AS temp, e.id as temp2"
+#                 " FROM employee e "
+#                 " GROUP BY e.dept_id, e.id ")
+
     
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
@@ -395,7 +405,7 @@ if __name__ == "__main__":
     print "------------------------------------------------------------------------------------"
 #    queryclauses.dispay()
     distinctGroupbyValues = findDistinctGroupbyValues(queryobj)
-    print distinctGroupbyValues
+#    print distinctGroupbyValues
 
     # dictionary having the temp table as key and the query for that table as value 
     subSelects = constructSubSelects (queryobj, distinctGroupbyValues)
