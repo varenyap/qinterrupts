@@ -40,6 +40,14 @@ def isWhereClauseOperator(tok):
                 return True
     return False
 
+def isMathOperator(input):
+    mathOperators = ["+", "-", "*", "/"]
+    if (input is not None):
+        if str(input) in mathOperators:
+            return True
+        
+    return False
+
 def isLogicalOperator(tok):
     logicalOperators = ["NOT", "OR", "AND"]
     if (tok is not None):

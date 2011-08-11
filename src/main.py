@@ -24,8 +24,8 @@ def getUserInput():
         orderby+=" "
         entry = raw_input("")
     
-    userInput = query + ' ' + groupby + ' ' + orderby 
-    return userInput
+    return (query, groupby, orderby)
+#    userInput = query + ' ' + groupby + ' ' + orderby 
 
 
 if __name__ == "__main__":

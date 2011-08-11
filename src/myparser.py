@@ -17,6 +17,23 @@ import myqueryclauses
 
 import myqueryconstructor
 
+def createUserInputObject(query, groupby, orderby):
+    
+    (mytok, mytoklen) = tokenizeUserInput (query)
+#    displayTokens(mytok,mytoklen)
+    queryobj = myParser(mytok, mytoklen)
+    
+    (mytok, mytoklen) = tokenizeUserInput (" GROUP BY " + groupby)
+#    displayTokens(mytok,mytoklen)
+    groupobj = myParser(mytok, mytoklen)
+    
+    (mytok, mytoklen) = tokenizeUserInput (" ORDER BY " + orderby)
+#    displayTokens(mytok,mytoklen)
+    orderobj = myParser(mytok, mytoklen)
+    
+    return (queryobj,groupobj,orderobj)
+
+
 def tokenizeUserInput(userInput):
     fromattedquery = sqlparse.format(userInput,keyword_case = 'upper', identifier_case = 'lower', strip_comments = True)
     mystmt = sqlparse.parse(fromattedquery)[0]
