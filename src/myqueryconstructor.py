@@ -387,19 +387,19 @@ if __name__ == "__main__":
                  " WHERE e.dept_id = d.id and e.id = es.emp_id "
                  " GROUP BY d.name,es.skill,e.name ")
     
-#    userInput = ("SELECT e.dept_id, MAX(e.salary) "
-#                 " FROM employee e, department d "
-#                 " GROUP BY e.dept_id "
-#                 " ORDER BY e.dept_id DESC")
+    userInput = ("SELECT e.dept_id, MAX(e.salary) "
+                 " FROM employee e, department d "
+                 " GROUP BY e.dept_id "
+                 " ORDER BY e.dept_id")
 
 #    userInput = (" SELECT e.dept_id AS temp, e.id as temp2"
 #                 " FROM employee e "
 #                 " GROUP BY e.dept_id, e.id ")
 
-    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
-                 " FROM employee e, department d, employee_skill es "
-                 " GROUP BY e.id, e.dept_id, es.skill "
-                 " ORDER BY e.dept_id DESC, e.id ASC, es.skill, MAX(e.salary) " )
+#    userInput = ("SELECT e.id, e.dept_id, MAX(e.salary) "
+#                 " FROM employee e, department d, employee_skill es "
+#                 " GROUP BY e.id, e.dept_id, es.skill "
+#                 " ORDER BY e.dept_id DESC, e.id ASC, es.skill, MAX(e.salary) " )
     
     (mytok, mytoklen) = myparser.tokenizeUserInput (userInput)
 #    displayTokens(mytok,mytoklen)

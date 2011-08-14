@@ -127,11 +127,27 @@ class Db_connection:
             for attribute in attributes:
                 print "%s (%s)" %(attribute[0],attribute[1])
         
-             
+    def total_cost(self, query):
+        query = " EXPLAIN " + query
+        query_plan = self.allrows(query)
+        idx_dot = query_plan[0][0].find("..")
+        idx_rows = query_plan[0][0].find("rows")
+        
+        total_cost = query_plan[0][0][idx_dot+2:idx_rows]
+        return total_cost
+    
 def main():
     dbobj = Db_connection()
     dbobj.clear_database()
 #    dbobj.display_schema()
+    query = " SELECT dept_id, MAX(salary) FROM company GROUP BY dept_id ORDER BY MAX(salary) "
+    print dbobj.total_cost(query)
+
+    query = " SELECT * FROM company "
+    print dbobj.total_cost(query)
+    
+    
+    
 #    print dbobj.list_tables()
 #    print dbobj.list_table_attributes('quotes')
 #    print dbobj.list_table_attributes('q_orcl')
