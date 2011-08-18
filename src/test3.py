@@ -30,7 +30,7 @@ def findStringOrderbyAttributes(queryobj):
     orderbyAttr = orderbyAttr.strip("_")
     orderbyAttr = orderbyAttr.strip(", ")
     
-    print "orderbyAttr: %s" %orderbyAttr
+#    print "orderbyAttr: %s" %orderbyAttr
     return orderbyAttr
 
 #Returns the Attributes as a string. No clause keywords included
@@ -141,12 +141,16 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     orderbyClause = " ORDER BY " #+ orderbyString
     
     for item in orderbyList:
+        if (myhelper.hasSelectOperator(item)):
+            orderbyClause = orderbyClause.strip(", ")    
         orderbyClause+= item + ","
         item = item.replace("ASC","")
         item = item.replace("DESC","")
         item= item.strip()
         
         if (item not in selectClause):
+            if (myhelper.hasSelectOperator(item)):
+                selectClause = selectClause.strip(", ")
             selectClause+= item + ", "
             idx = item.find(" ")
             if (idx is not -1):
@@ -163,28 +167,18 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
         if item not in selectClause:
             selectClause+=item + ", "
     
-    selectClause = selectClause.strip(", ")
     
+    selectClause = selectClause.strip(", ")
     selectIntoClause = " INTO tempDistinctAttributeValues "
     groupbyClause = " GROUP BY " + findStringGroupbyAttributes(groupobj) + " "
     
     #Find unique tables in the original from query.
     orgFromAttr = findStringFromAttributes(queryobj)
-#    orgFromAttrList = orgFromAttr.split(",")
-    
-#    uniqueTables = ""
-#    for item in orgFromAttrList:
-#        idx = item.find(" ")
-#        if (idx is not -1):
-#            item = item[:idx]
-#            if (item.strip() not in uniqueTables):
-#                uniqueTables+= item + ", "
-#        else:
-#            uniqueTables
+    orgFromAttr = findStringFromAttributes(queryobj)
     
     fromClause = " FROM " + orgFromAttr
     query = selectClause + selectIntoClause + fromClause + groupbyClause + orderbyClause
-    print groupbyClause +  orderbyClause
+#    print groupbyClause +  orderbyClause
     dropQuery = "drop table if exists tempDistinctAttributeValues;"
     
     
@@ -196,7 +190,7 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
 def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues):
     if (queryobj and selectAttr and distinctValues):
         print"constructSubSelects"
-        print selectAttr
+        
         #Temporary data structures required
         queryList = {}
         selectList = {}
@@ -335,23 +329,10 @@ if __name__ == "__main__":
 #    groupAttr = "dept_id, locale, salary "
 #    orderAttr = " dept_id DESC, locale"
 #    
-#    #query = " SELECT q1.sym, q1.day, q1.price - q2.price FROM quotes as q1, quotes as q2 WHERE q1.sym = q2.sym and q1.day = q2.day -1 "
-#    #groupAttr = " q1.sym "
-#    #orderAttr = " MAX(q1.price) - MIN(q1.price) AS maxJump"
-#    
-#    query = " SELECT dept_id, MAX(salary) FROM company GROUP BY dept_id " 
-#    groupAttr = " dept_id "
-#    orderAttr = " dept_id "
+    query = " SELECT q1.sym, q1.day, q1.price - q2.price FROM quotes as q1, quotes as q2 WHERE q1.sym = q2.sym and q1.day = q2.day -1 "
+    groupAttr = " q1.sym "
+    orderAttr = " MAX(q1.price) - MIN(q1.price)"
     
-    query = " SELECT dept_id, MAX(salary) FROM company GROUP BY dept_id " 
-    groupAttr = " dept_id "
-    orderAttr = " MAX(salary) "
-
-    #doesnt work    
-    query = " SELECT dept_id FROM company GROUP BY dept_id " 
-    groupAttr = " dept_id "
-    orderAttr = " MAX(salary) "
-
 
     (queryobj,groupobj,orderobj) = myparser.createUserInputObject(query, groupAttr, orderAttr)
     print "----------------------------Original query input:-------------------------------------------------------"

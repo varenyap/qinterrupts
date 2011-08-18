@@ -50,9 +50,7 @@ def displayTokens(mytok,mytoklen):
     print " ----------------------------Finished printing the 'tokenized' query-----------------------"
 
 def myParser(mytok, mytoklen):
-    
     queryobj = myqueryclauses.myqueryclauses()
-        
     i=0
     while(i <mytoklen):
 

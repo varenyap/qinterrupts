@@ -45,7 +45,6 @@ def isMathOperator(input):
     if (input is not None):
         if str(input) in mathOperators:
             return True
-        
     return False
 
 def isLogicalOperator(tok):
@@ -64,6 +63,13 @@ def isOrderbyOperator(tok):
                 return True
     return False
 
+def hasSelectOperator(input):
+    selectOperators = ["NOT", "OR", "AND", "+", "-", "*", "/", "=", "<>", "!=", ">", "<", ">=", "<="]
+    if (input is not None):
+        for key in selectOperators:
+            if (key in str(input)):
+                return True
+    return False
 def removeListDuplicates(seq): 
     # order preserving
     noDupes = []
