@@ -9,6 +9,7 @@ class myqueryclauses:
     havingIdent = None
     selectGroupbyIdent = None
     selectContainsAggregate = False
+    orderbyContainsAggregate = False
     
     def __init__(self):
         selectIdent = None
@@ -20,6 +21,7 @@ class myqueryclauses:
         selectGroupbyIdent = None
         newSelectIdent = None
         selectContainsAggregate = False
+        orderbyContainsAggregate = False
         
 #        selectIdent = sqlparse.sql.IdentifierList()
 #        fromIdent = sqlparse.sql.IdentifierList()
@@ -42,6 +44,8 @@ class myqueryclauses:
         self.havingIdent = ident
     def setSelectContainsAggregate(self,val):
         self.selectContainsAggregate = val
+    def setOrderbyContainsAggregate(self,val):
+        self.orderbyContainsAggregate = val
     def setSelectGroupbyIdent (self,ident):
         self.selectGroupbyIdent = ident
     def setNewSelectIdent (self,ident):
@@ -67,9 +71,10 @@ class myqueryclauses:
         return self.havingIdent
     def getSelectContainsAggregate(self):
         return self.selectContainsAggregate
+    def getOrderbyContainsAggregate(self):
+        return self.orderbyContainsAggregate
     def getSelectGroupbyIdent (self):
         return  self.selectGroupbyIdent
-    
     def getNewSelectIdent (self):
         return self.newSelectIdent
    

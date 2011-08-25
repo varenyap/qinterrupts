@@ -52,16 +52,22 @@ def findStringFromAttributes(queryobj):
 def findStringSelectAttributes(queryobj):
     selectAttr = ""
     selectIdent = queryobj.getSelectIdent()
+    
     if (selectIdent is  not None):
         if (myhelper.checkIfList(selectIdent)):
             for sid in selectIdent:
                 if (myhelper.isAggregate(sid)):
+                    selectAttr+=str(sid)
+                elif(myhelper.isMathOperator(sid)):
+                    selectAttr = selectAttr.rstrip(", ")
                     selectAttr+=str(sid)
                 else:
                     selectAttr+= str(sid) + ", "
         else:
             selectAttr+= str(selectIdent)
     selectAttr = selectAttr.strip(", ")
+    
+    
     return selectAttr
 
 #Returns the Attributes as a string. No clause keywords included
@@ -110,8 +116,12 @@ def findFromAlias(queryobj):
 def getGroupbyDistinctList(query, dropQuery):
     
     if (query and dropQuery):
+        print "Resetting the database: "
+#        db.clear_database() # reset the database on each run.
+        print "finished resetting"
         db.make_query(dropQuery)
         print query
+        
         db.make_query(query)
         
         results = db.allrows("select * from tempDistinctAttributeValues")
@@ -125,8 +135,9 @@ def getGroupbyDistinctList(query, dropQuery):
 def displayGroupbyValues(query, results):
     print "\n---------------------Displaying distinct GroupbyValues:--------------------------------"
     print query
-    for rs in results:
-        print rs
+#    for rs in results:
+#        print rs
+    print "Cost: %s"%db.total_cost(query)
     print "----------------------------------------------------------------------------------------"
 
 #Creates the queries required to execute against the database
@@ -136,21 +147,24 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     selectClause+= findStringGroupbyAttributes(groupobj) 
     selectClause+= ", "
     
+    
     orderbyString = findStringOrderbyAttributes(orderobj)
     orderbyList = orderbyString.split(",")
     orderbyClause = " ORDER BY " #+ orderbyString
     
     for item in orderbyList:
         if (myhelper.hasSelectOperator(item)):
-            orderbyClause = orderbyClause.strip(", ")    
-        orderbyClause+= item + ","
+            orderbyClause = orderbyClause.rstrip(", ")
+        if ("(" in item):
+            orderbyClause = orderbyClause.rstrip(", ")  
+        orderbyClause+= " " + item + ", "
         item = item.replace("ASC","")
         item = item.replace("DESC","")
-        item= item.strip()
+        item= item.rstrip()
         
         if (item not in selectClause):
             if (myhelper.hasSelectOperator(item)):
-                selectClause = selectClause.strip(", ")
+                selectClause = selectClause.rstrip(", ")
             selectClause+= item + ", "
             idx = item.find(" ")
             if (idx is not -1):
@@ -158,19 +172,32 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     
     selectClause = selectClause.replace("ASC","")
     selectClause = selectClause.replace("DESC", "")
+    #selectClause = selectClause.rstrip(", ")
     orderbyClause = orderbyClause.rstrip(", ")
     
     #Now add in all the attributes that are in the original select like aggregates
     orgSelect = findStringSelectAttributes(queryobj)
+
     orgSelectList = orgSelect.split(",")
     for item in orgSelectList:
+        
         if item not in selectClause:
             selectClause+=item + ", "
     
-    
-    selectClause = selectClause.strip(", ")
+    selectClause = selectClause.rstrip(", ")
     selectIntoClause = " INTO tempDistinctAttributeValues "
-    groupbyClause = " GROUP BY " + findStringGroupbyAttributes(groupobj) + " "
+    
+    #Now, add in all the group by attributes in the main query with that of the user entered groupby
+    orgGroupby = findStringGroupbyAttributes(queryobj)
+    groupbyClause = " GROUP BY " + findStringGroupbyAttributes(groupobj) + ", "
+    if (orgGroupby is not None):
+        orgGroupbyList = orgGroupby.split(",")
+        
+        for item in orgGroupbyList:
+            if (str(item) not in groupbyClause):
+                groupbyClause+= str(item) + ", "
+    
+    groupbyClause = groupbyClause.rstrip(", ")    
     
     #Find unique tables in the original from query.
     orgFromAttr = findStringFromAttributes(queryobj)
@@ -181,7 +208,6 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
 #    print groupbyClause +  orderbyClause
     dropQuery = "drop table if exists tempDistinctAttributeValues;"
     
-    
     distinctValues = getGroupbyDistinctList(query, dropQuery)
     # Contains only the attribute names/no keywords like DESC, yes to aggregates
     selectAttr = selectClause.lstrip(" SELECT DISTINCT ") 
@@ -189,7 +215,7 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
 
 def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues):
     if (queryobj and selectAttr and distinctValues):
-        print"constructSubSelects"
+#        print"entering subselects "
         
         #Temporary data structures required
         queryList = {}
@@ -203,7 +229,7 @@ def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValue
         insertClause = " INSERT INTO finalOutputTable (" + selectAttr + ")"        
         
         selectAttrList = selectAttr.split(",")#contains list of attributes in the select clause of sub-queries
-        containsAggregate =  queryobj.getSelectContainsAggregate()
+        containsAggregate =  queryobj.getSelectContainsAggregate() or orderobj.getOrderbyContainsAggregate()
         orgWhere = queryobj.getWhereIdent()
 #        if (orgWhere is None): # the original query has no where clause
 #            orgWhere = ""
@@ -211,21 +237,28 @@ def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValue
         numRows = len(distinctValues)
         fromClause = " FROM " + findStringFromAttributes(queryobj)
         
+        #Tobe used when order by has an aggregate in it
+        groupbyClause = " "
+        
         for attr in selectAttrList:
             if("(" in attr):
                 addBigWhere+= myhelper.remAggregate(attr) + " IS NOT NULL AND "
                 insertClause+= myhelper.remAggregate(attr)
             else:
+                groupbyClause+= str(attr) + ", "
                 insertClause+=str(attr) + ", "
         insertClause = insertClause.rstrip(", ")
         insertClause+=")"
         addBigWhere = addBigWhere.rstrip(" AND ")
-        
         addBigWhere = " WHERE " + addBigWhere
         
-        #SELECT dept_id, locale INTO temp1 FROM company WHERE cmp_id = 2 AND dept_id = 1 AND locale = 'Boston';
-        #    SELECT '4'::Text as dept_id, 'Columbus'::Text as locale, MAX(salary) INTO temp0 FROM company 
-        #    WHERE cmp_id = 2 AND dept_id = '4' AND locale = 'Columbus';
+        #if the user entered an orderby attribute with an aggregate then you have a group by
+        if (orderobj.getOrderbyContainsAggregate()):
+            groupbyClause = " GROUP BY " + groupbyClause
+            groupbyClause = groupbyClause.rstrip(", ")
+        else:
+            groupbyClause = " "
+        
         
         iterations = 0
         for tuple in distinctValues:
@@ -242,10 +275,9 @@ def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValue
                 
                 if (containsAggregate):
                     if ("(" not in attrName):
-                        selectList[iterations]+= "'" + attrValue + "'::Text AS " + attrName + ", "
+                        selectList[iterations]+= "'" + attrValue + "'::Text AS " + myhelper.remAggregate(attrName) + ", "
                         whereList[iterations]+= attrName + " = '" + attrValue + "' AND " 
                     else:
-                        
                         selectList[iterations]+= attrName + " AS " + myhelper.remAggregate(attrName) + ", "
                 else:#select contains no aggregate
                     selectList[iterations]+= attrName + ", "
@@ -257,9 +289,10 @@ def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValue
             whereList[iterations] = whereList[iterations].rstrip(" AND ")
             selectIntoList[iterations] = " INTO temp"+ str(iterations) + " "
         
-            queryList[iterations] = selectList[iterations] + selectIntoList[iterations] + fromClause + whereList[iterations]
+            queryList[iterations] = selectList[iterations] + selectIntoList[iterations] + fromClause + whereList[iterations] + groupbyClause
 #            print queryList[iterations]     
             iterations+=1
+        print "Subselects constructed!"
         return (queryList, numRows, addBigWhere)
     print "Error in creating subqueries"
     return None
@@ -267,7 +300,7 @@ def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValue
 
 def constructBigQuery(queryList, numRows, selectAttr,addBigWhere):
     if(queryList and numRows):
-        print "constructbigquery"
+#        print "constructbigquery"
         writeToFile (queryList, numRows, selectAttr, addBigWhere)
         
 #Purpose: Write the parameters passed in to the method in to a python script file called scripts.py
@@ -321,27 +354,21 @@ def writeToFile (queryList, numRows, selectAttr, addBigWhere):
 
 
 if __name__ == "__main__":
-#    query = "SELECT dept_id, locale FROM company WHERE cmp_id = 2 "
-#    groupAttr = "dept_id, locale "
-#    orderAttr = "dept_id"
-#
-#    query = "SELECT dept_id, locale, salary FROM company WHERE cmp_id = 2 "
-#    groupAttr = "dept_id, locale, salary "
-#    orderAttr = " dept_id DESC, locale"
-#    
-    query = " SELECT q1.sym, q1.day, q1.price - q2.price FROM quotes as q1, quotes as q2 WHERE q1.sym = q2.sym and q1.day = q2.day -1 "
+    
+ 
+    mainQuery = (" SELECT q1.sym "
+                 " FROM quotes as q1, quotes as q2 "
+                 " WHERE q1.sym = q2.sym and q1.days = q2.days -1 ")
     groupAttr = " q1.sym "
-    orderAttr = " MAX(q1.price) - MIN(q1.price)"
+    orderAttr = " MAX(q1.price) - MIN(q2.price) "
     
-
-    (queryobj,groupobj,orderobj) = myparser.createUserInputObject(query, groupAttr, orderAttr)
+    (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
     print "----------------------------Original query input:-------------------------------------------------------"
-    print " %s\n %s\n %s" %(query,groupAttr, orderAttr)
-    print "--------------------------------------------------------------------------------------------------------"
-    
+    print " %s\n %s\n %s" %(mainQuery,groupAttr, orderAttr)
+    print "Cost: %s"%db.total_cost(mainQuery)
+    print "--------------------------------------------------------------------------------------------------------"    
 
     (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)    
     
-    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
-    constructBigQuery(queryList, numRows, selectAttr, addBigWhere)
-
+#    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
+#    constructBigQuery(queryList, numRows, selectAttr, addBigWhere)

@@ -1,8 +1,3 @@
-drop table if exists d_name_hr cascade;
-drop table if exists d_name_it cascade;
-drop table if exists d_name_marketing cascade;
-drop table if exists d_name_sales cascade;
-drop table if exists quotes cascade;
 drop table if exists department cascade;
 drop table if exists employee cascade;
 drop table if exists dept_manager cascade;

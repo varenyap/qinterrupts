@@ -140,10 +140,10 @@ def main():
     dbobj = Db_connection()
     dbobj.clear_database()
 #    dbobj.display_schema()
-    query = " SELECT dept_id, MAX(salary) FROM company GROUP BY dept_id ORDER BY MAX(salary) "
-    print dbobj.total_cost(query)
+#    query = " SELECT dept_id, MAX(salary) FROM company GROUP BY dept_id ORDER BY MAX(salary) "
+#    print dbobj.total_cost(query)
 
-    query = " SELECT * FROM company "
+    query = " SELECT * FROM quotes "
     print dbobj.total_cost(query)
     
     

@@ -30,6 +30,12 @@ def remAggregate (input):
     input = input.replace(")",'')
     input = input.replace(".",'_')
     input = input.replace(" ", "_")
+    
+    selectOperators = ["NOT", "OR", "AND", "+", "-", "*", "/", "=", "<>", "!=", ">", "<", ">=", "<="]
+    if (input is not None):
+        for key in selectOperators:
+            if (key in str(input)):
+                input = input.replace(key, "")
     return input
 
 def isWhereClauseOperator(tok):
@@ -41,7 +47,7 @@ def isWhereClauseOperator(tok):
     return False
 
 def isMathOperator(input):
-    mathOperators = ["+", "-", "*", "/"]
+    mathOperators = ["+", "-", "*", "/", "=", "<>", "!=", ">", "<", ">=", "<="]
     if (input is not None):
         if str(input) in mathOperators:
             return True
