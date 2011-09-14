@@ -301,9 +301,9 @@ if __name__ == "__main__":
 #                 " FROM employee e, department d, employee_skill es "
 #                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
 #                 " GROUP BY d.name,es.skill,e.name ")
-    userInput = (" SELECT q1.sym, q1.days, q1.price - q2.price ")
-#                 " FROM quotes as q1, quotes as q2 "
-#                 " WHERE q1.sym = q2.sym and q1.day = q2.day -1 ")
+    userInput = (" SELECT q1.sym, q1.days, q1.price - q2.price "
+                 " FROM quotes as q1, quotes as q2 "
+                 " WHERE q1.sym = q2.sym and q1.day = q2.day -1 ")
     
 #    userInput = (" SELECT s.salary as sal, e.dept_id"
 #                 " FROM department d, employee e "
@@ -324,7 +324,7 @@ if __name__ == "__main__":
     queryclauses.dispay()   
 #    print queryclauses.getOrderbyContainsAggregate()
     
-    selectid = queryclauses.getSelectIdent()
+#    selectid = queryclauses.getSelectIdent()
 #    print "select id:.........."
 #    for s in selectid:
 #        print s
