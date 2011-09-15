@@ -1,3 +1,8 @@
+#===============================================================================
+# myqueryclauses.py
+# Defines a class called myqueryclauses which contains the SELECT, FROM, WHERE
+# GROUP BY, ORDER BY, HAVING clauses found in a sql query. 
+#===============================================================================
 import sqlparse
 
 class myqueryclauses:
@@ -7,8 +12,10 @@ class myqueryclauses:
     groupbyIdent = None
     orderbyIdent = None
     havingIdent = None
-    selectGroupbyIdent = None
-    selectContainsAggregate = False
+    
+    #The following are used while constructing the sub-queries.
+    selectGroupbyIdent = None #Combination of the select attributes and group by attributes (distinct)
+    selectContainsAggregate = False 
     orderbyContainsAggregate = False
     
     def __init__(self):
@@ -22,13 +29,6 @@ class myqueryclauses:
         newSelectIdent = None
         selectContainsAggregate = False
         orderbyContainsAggregate = False
-        
-#        selectIdent = sqlparse.sql.IdentifierList()
-#        fromIdent = sqlparse.sql.IdentifierList()
-#        whereIdent = sqlparse.sql.IdentifierList()
-#        groupbyIdent = sqlparse.sql.IdentifierList()
-#        orderbyIdent = sqlparse.sql.IdentifierList()
-#        havingIdent = sqlparse.sql.IdentifierList()
     
     def setSelectIdent (self,ident):
         self.selectIdent = ident

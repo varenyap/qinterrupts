@@ -3,7 +3,8 @@
 # Given a SQL query, the file is used to parse the query into its various
 # components such that the attributes for each clause are returned in a
 # read-able format.
-# For each clause, returns an identifier, or an identifier list.
+# For each clause, returns an identifier, or an identifier list (see the
+# sql-parse documentation for details)
 # Handles the following keywords: SELECT, FROM, WHERE, GROUP BY, ORDER BY,
 # HAVING and all aggregates.
 
@@ -15,8 +16,8 @@ from sqlparse.tokens import *
 import myhelper
 import myqueryclauses
 
-import myqueryconstructor
-
+# The function is used to create token out of the three parts of the query plan.
+# It returns tokens
 def createUserInputObject(query, groupby, orderby):
     
     (mytok, mytoklen) = tokenizeUserInput (query)
@@ -37,7 +38,6 @@ def createUserInputObject(query, groupby, orderby):
     
     return (queryobj,groupobj,orderobj)
 
-
 def tokenizeUserInput(userInput):
     fromattedquery = sqlparse.format(userInput,keyword_case = 'upper', identifier_case = 'lower', strip_comments = True)
     mystmt = sqlparse.parse(fromattedquery)[0]
@@ -53,6 +53,11 @@ def displayTokens(mytok,mytoklen):
         idx+=1
     print " ----------------------------Finished printing the 'tokenized' query-----------------------"
 
+#===============================================================================
+# The main parser function. This takes in tokens, number of tokens and iterates
+# through the list to find SQL clauses and attributes. Returns an object of
+# type: myqueryclauses.
+#===============================================================================
 def myParser(mytok, mytoklen):
     queryobj = myqueryclauses.myqueryclauses()
     i=0
@@ -65,9 +70,8 @@ def myParser(mytok, mytoklen):
             if (str(mytok[i].ttype) == 'Token.Keyword.DML' and str(mytok[i].value) == "SELECT"):
                 i = incrementIfWhitespace(mytok[i+1], i)
                 
-                selectIdent = findIdentifierList(mytok[i+1])
+#                selectIdent = findIdentifierList(mytok[i+1])
                 selectIdent = None
-
                 if (selectIdent is None):
                     
                     mytoklist = []
@@ -98,6 +102,8 @@ def myParser(mytok, mytoklen):
 #                queryclauses.getFromIdent()
             
             elif (isinstance(mytok[i], sql.Where)): # Found the where clause
+                #For some obscure reason, this is the only clause that sq-parse seems to 
+                #capture on its own.
                 queryobj.setWhereIdent((mytok[i]))
 #                queryclauses.getWhereIdent()
             
@@ -146,17 +152,13 @@ def myParser(mytok, mytoklen):
 #                queryclauses.getHavingIdent()
             i+=1
     
-    #FInd new Identity
+    #Find new Identity
     selectid = queryobj.getSelectIdent()
     groupbyid = queryobj.getGroupbyIdent()
     newIdent = findNewSelectIdent(selectid, groupbyid)
     queryobj.setNewSelectIdent(newIdent)
     
-
     return queryobj
-
-    
-#    print " ----------------------------Finished parsing the user query--------------------------"
 
 def incrementIfWhitespace(tok, idx):
     if ((tok).is_whitespace()):
@@ -167,7 +169,7 @@ def incrementIfWhitespace(tok, idx):
 def findIdentifierList(token):
 #    print"find identifierLIst"
     if (isinstance(token,sql.IdentifierList)):
-        mytoklist = []
+#        mytoklist = []
         myidentlist = token
         ident =  sql.IdentifierList.get_identifiers(myidentlist)
 #        print ident
@@ -289,8 +291,6 @@ def findNewSelectIdent(selectid, groupbyid):
 
 if __name__ == "__main__":
     
-    #Step 1: Get query from user
-#    userInput = getUserInput()
 #    userInput = ("SELECT MAX(e.id) "
 #                 " FROM department d, employee e "
 #                 " WHERE e.dept_id = d.id "
@@ -309,8 +309,7 @@ if __name__ == "__main__":
 #                 " FROM department d, employee e "
 #                 " WHERE e.dept_id = d.id "
 #                 " GROUP BY e.id ")
-    
-    
+
     print"------------------------------------------------------------------"
     print userInput
     print"------------------------------------------------------------------"
@@ -322,13 +321,3 @@ if __name__ == "__main__":
     
     #Step 5: Display the clauses in the user query
     queryclauses.dispay()   
-#    print queryclauses.getOrderbyContainsAggregate()
-    
-#    selectid = queryclauses.getSelectIdent()
-#    print "select id:.........."
-#    for s in selectid:
-#        print s
-#    print "newident:.........."    
-#    newIdent = queryclauses.getNewSelectIdent()
-#    for n in newIdent:
-#        print n

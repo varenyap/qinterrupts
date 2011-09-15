@@ -361,6 +361,7 @@ if __name__ == "__main__":
                  " WHERE q1.sym = q2.sym and q1.days = q2.days -1 ")
     groupAttr = " q1.sym "
     orderAttr = " MAX(q1.price) - MIN(q2.price) "
+    orderAttr = " q1.sym "
     
     (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
     print "----------------------------Original query input:-------------------------------------------------------"
@@ -370,5 +371,5 @@ if __name__ == "__main__":
 
     (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)    
     
-#    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
-#    constructBigQuery(queryList, numRows, selectAttr, addBigWhere)
+    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
+    constructBigQuery(queryList, numRows, selectAttr, addBigWhere)

@@ -1,3 +1,8 @@
+#===============================================================================
+# scriptGenerator.py
+# Creates insert statements for 'quotes' table having the day and price as 
+# its attributes.
+#===============================================================================
 import random
 
 filename = "quotesScript.sql"
@@ -6,6 +11,7 @@ FILE = open(filename,"w")
 FILE.write("drop table if exists quotes cascade;\n")
 FILE.write("create table quotes (sym varchar(128), days integer,price integer);-- Table: quotes\n")
 
+numDays = 4
 stocks = ['MSFT', 'ERTS','MSN','EQIX','JST','PEP','ORCL', 'IBM',
           'GOOG', 'NFLX', 'BA', 'KO', 'EDC','MOS', 'OTT', 'CNOOC',
           'AGU','EVR','CTSH','ZION','ZLCS','RIG','RDSA','BAC','V',
@@ -18,8 +24,8 @@ stocks = ['MSFT', 'ERTS','MSN','EQIX','JST','PEP','ORCL', 'IBM',
           'INTU','LRCX','JOYG','ILMN','KLAC','NTAP','MYL','NIHD',
           'ORCL','ROST','SNDK','SIRI','SIAL','MCHP','MU','MAT']
 
-numDays = 100
-
+stocks = ['MSFT','ORCL', 'IBM']
+          
 for stock in stocks:
     day = 1
     while(day<numDays+1):
