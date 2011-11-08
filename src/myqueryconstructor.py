@@ -13,7 +13,7 @@ db = db_connection.Db_connection()
 def findStringOrderbyAttributes(queryobj):
     orderbyAttr = ""
     orderbyIdent = queryobj.getOrderbyIdent()
-    if (orderbyIdent is  not None):
+    if (orderbyIdent is  not ""):
         for oid in orderbyIdent:
 #            print oid
             if (myhelper.isAggregate(oid)):
@@ -86,7 +86,7 @@ def findStringSelectAttributes(queryobj):
 def findStringGroupbyAttributes(queryobj):
     groupbyAttr = ""
     groupbyIdent = queryobj.getGroupbyIdent()
-    if (groupbyIdent is  not None):
+    if (groupbyIdent is  not ""):
         if (myhelper.checkIfList(groupbyIdent)):
             for gid in groupbyIdent:
                 groupbyAttr+= str(gid) + ", "
@@ -131,15 +131,15 @@ def getGroupbyDistinctList(query, dropQuery):
 #        db.clear_database() # reset the database on each run.
 #        print "finished resetting"
         db.make_query(dropQuery)
-#        print query
+        print query
         
         db.make_query(query)
         
         results = db.allrows("select * from tempDistinctAttributeValues")
         
         displayGroupbyValues(query, results)
-        print "distinct results are: "
-        print results
+#        print "distinct results are: "
+#        print results
         return results
     
     print " Error in executing distinct groupby queries\n"   
@@ -164,6 +164,7 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     orderbyList = orderbyString.split(",")
     orderbyClause = " ORDER BY " #+ orderbyString
     
+#    if (orderbyList is not ""):
     for item in orderbyList:
         if (myhelper.hasSelectOperator(item)):
             orderbyClause = orderbyClause.rstrip(", ")

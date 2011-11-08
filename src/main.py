@@ -7,8 +7,7 @@ import myqueryconstructor
 
 db = db_connection.Db_connection()
 
-def getUserInput():    
-    userInput = ""
+def getUserInput():
     query = ""
     entry = raw_input("Enter query, 'done' on its own line to quit: \n")
     while entry.lower() != "done":
@@ -37,12 +36,30 @@ if __name__ == "__main__":
     #Step 1: Get query from user
 #    (mainQuery,groupAttr,orderAttr) = getUserInput()
     
-    mainQuery = (" SELECT q1.sym "
-                 " FROM quotes as q1, quotes as q2 "
-                 " WHERE q1.sym = q2.sym and q1.days = q2.days -1 ")
-    groupAttr = " q1.sym "
-    orderAttr = " MAX(q1.price) - MIN(q2.price) "
+#    mainQuery = (" SELECT q1.sym "
+#                 " FROM quotes as q1, quotes as q2 "
+#                 " WHERE q1.sym = q2.sym and q1.days = q2.days -1 ")
+#    groupAttr = " q1.sym "
+#    orderAttr = " MAX(q1.price) - MIN(q2.price) "
+    
+#    mainQuery = " SELECT sym, MAX(price) FROM quotes GROUP BY sym "
+#    groupAttr = " sym "
+#    orderAttr = " sym "
 
+    mainQuery = """ SELECT n_name, sum(l_extendedprice * (1 - l_discount)) as revenue
+                    FROM customer, orders, lineitem, supplier, nation, region
+                    WHERE c_custkey = o_custkey and l_orderkey = o_orderkey
+                        and l_suppkey = s_suppkey and c_nationkey = s_nationkey
+                        and s_nationkey = n_nationkey and n_regionkey = r_regionkey
+                        and r_name = 'EUROPE' and o_orderdate >= date '1993-01-01'
+                        and o_orderdate < date '1993-01-01' + interval '1' year
+                   GROUP BY n_name
+                   ORDER BY revenue desc
+                   LIMIT ALL; """
+    
+    groupAttr = ""
+    orderAttr = ""
+    
     #Step 2: Tokenize the query give by the user
     (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
     print "----------------------------Original query input:-------------------------------------------------------"
@@ -51,23 +68,18 @@ if __name__ == "__main__":
     print "--------------------------------------------------------------------------------------------------------"    
     
     #Step 3: Display the tokens in the user query
-#    displayTokens(mytok,mytoklen)
+#    queryobj.printClauses()
     
-    #Step 4: Find the ordered, distinct group by values for given query plan.
+
+#    
+#    #Step 4: Find the ordered, distinct group by values for given query plan.
     (selectAttr, distinctValues) = myqueryconstructor.findDistinctGroupbyValues(queryobj,groupobj,orderobj)   
-    
-    #Step 5: construct the sub-selects for each distinct value in the group by/order by clauses 
-    (queryList, numRows, addBigWhere) = myqueryconstructor.constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
-    
-    #Step 6: Create the script finally!
-#    myqueryconstructor.constructBigQuery(queryList, numRows, selectAttr, addBigWhere)
-    
-    #In the final query, need only the original select attributes.
-    orgSelect = myqueryconstructor.findStringSelectAttributes(queryobj)
-    orgSelect = myhelper.remAggregate(orgSelect)
-    myqueryconstructor.constructBigQuery(queryList, numRows, orgSelect, addBigWhere)
-
-
-
-    
-    
+#    
+#    #Step 5: construct the sub-selects for each distinct value in the group by/order by clauses 
+#    (queryList, numRows, addBigWhere) = myqueryconstructor.constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
+#    
+#    #Step 6: Create the script finally!    
+#    #In the final query, need only the original select attributes.
+#    orgSelect = myqueryconstructor.findStringSelectAttributes(queryobj)
+#    orgSelect = myhelper.remAggregate(orgSelect)
+#    myqueryconstructor.constructBigQuery(queryList, numRows, orgSelect, addBigWhere)

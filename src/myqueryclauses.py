@@ -78,7 +78,6 @@ class myqueryclauses:
     def getNewSelectIdent (self):
         return self.newSelectIdent
    
-   
     def getAll(self):
         retVal = []
         
@@ -97,7 +96,41 @@ class myqueryclauses:
         
         return retVal
     
-    def dispay(self):
+#    def display(self):
+#        print " i came to queryclauses: display"
+#        self.printClauses()
+#        if (self.selectIdent is not None):
+#            print "SELECT IDENTIFIERS:^^^^^^%s^^^^^"%self.selectIdent
+#        if (self.fromIdent is not None):
+#            print "FROM IDENTIFIERS:^^^^^^%s^^^^^"%self.fromIdent
+#        if (self.whereIdent is not None):
+#            print "WHERE IDENTIFIERS:^^^^^^%s^^^^^"%self.whereIdent
+#        if (self.groupbyIdent is not None):
+#            print "GROUP BY IDENTIFIERS:^^^^^^%s^^^^^"%self.groupbyIdent
+#        if (self.orderbyIdent is not None):
+#            print "ORDER BY IDENTIFIERS:^^^^^^%s^^^^^"%self.orderbyIdent
+#        if (self.havingIdent is not None):
+#            print "HAVING IDENTIFIERS:^^^^^^%s^^^^^"%self.havingIdent
+#        print " -----------------------Finished printing the parsed query clauses-----------------------"
+
+#    def displayClauses(self):
+#        print " i came to queryclauses: display_DELETE"
+#        self.printClauses()
+#        if (self.selectIdent is not None):
+#            print "SELECT IDENTIFIERS:^^^^^^%s^^^^^"%self.selectIdent
+#        if (self.fromIdent is not None):
+#            print "FROM IDENTIFIERS:^^^^^^%s^^^^^"%self.fromIdent
+#        if (self.whereIdent is not None):
+#            print "WHERE IDENTIFIERS:^^^^^^%s^^^^^"%self.whereIdent
+#        if (self.groupbyIdent is not None):
+#            print "GROUP BY IDENTIFIERS:^^^^^^%s^^^^^"%self.groupbyIdent
+#        if (self.orderbyIdent is not None):
+#            print "ORDER BY IDENTIFIERS:^^^^^^%s^^^^^"%self.orderbyIdent
+#        if (self.havingIdent is not None):
+#            print "HAVING IDENTIFIERS:^^^^^^%s^^^^^"%self.havingIdent
+#        print " -----------------------Finished printing the parsed query clauses-----------------------"
+    
+    def printClauses(self):
         if (self.selectIdent is not None):
             print "SELECT IDENTIFIERS:^^^^^^%s^^^^^"%self.selectIdent
         if (self.fromIdent is not None):

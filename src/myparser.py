@@ -20,21 +20,27 @@ import myqueryclauses
 # It returns tokens
 def createUserInputObject(query, groupby, orderby):
     
+#    print "making QUERY object now"    
     (mytok, mytoklen) = tokenizeUserInput (query)
-#    displayTokens(mytok,mytoklen)
+##    displayTokens(mytok,mytoklen)
     queryobj = myParser(mytok, mytoklen)
+#    queryobj.printClauses()
     
+#    print "Making GROUP BY object now "
     groupobj = None
-    if (groupby):
+    if (groupby is not ""):
         (mytok, mytoklen) = tokenizeUserInput (" GROUP BY " + groupby)
         #    displayTokens(mytok,mytoklen)
         groupobj = myParser(mytok, mytoklen)
+        #    groupobj.printClauses()
     
+#    print "making ORDER BY object now"
     orderobj = None
-    if (orderby):
+    if (orderby is not ""):
         (mytok, mytoklen) = tokenizeUserInput (" ORDER BY " + orderby)
-    #    displayTokens(mytok,mytoklen)
+        #    displayTokens(mytok,mytoklen)
         orderobj = myParser(mytok, mytoklen)
+        #    orderobj.printClauses()
     
     return (queryobj,groupobj,orderobj)
 
@@ -59,7 +65,7 @@ def displayTokens(mytok,mytoklen):
 # type: myqueryclauses.
 #===============================================================================
 def myParser(mytok, mytoklen):
-    queryobj = myqueryclauses.myqueryclauses()
+    newqueryobj = myqueryclauses.myqueryclauses()
     i=0
     while(i <mytoklen):
 
@@ -81,15 +87,15 @@ def myParser(mytok, mytoklen):
                     while (i <mytoklen and foundAttr is False):
                         (foundAttr, mytoklist,foundAggregate) = findIdentifierListWithKeywords(mytok[i],mytoklist)
                         if (foundAggregate):
-                            queryobj.setSelectContainsAggregate(foundAggregate)
+                            newqueryobj.setSelectContainsAggregate(foundAggregate)
                         if (foundAttr):
                             i-=2
                             break;
                         i+=1# From where loop at line 53
                     selectIdent = (sqlparse.sql.IdentifierList(mytoklist)).get_identifiers()
                 
-                queryobj.setSelectIdent(selectIdent)
-#                queryobj.setSelectIdent(sqlparse.sql.IdentifierList(mytoklist))
+                newqueryobj.setSelectIdent(selectIdent)
+#                newqueryobj.setSelectIdent(sqlparse.sql.IdentifierList(mytoklist))
 #                queryclauses.getSelectIdent()
             
             elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "FROM"):
@@ -98,24 +104,23 @@ def myParser(mytok, mytoklen):
                     fromIdent = mytok[i+2]
                 else:
                     i=i+2
-                queryobj.setFromIdent(fromIdent)
+                newqueryobj.setFromIdent(fromIdent)
 #                queryclauses.getFromIdent()
             
             elif (isinstance(mytok[i], sql.Where)): # Found the where clause
-                #For some obscure reason, this is the only clause that sq-parse seems to 
+                #For some obscure reason, this is the only clause that sql-parse seems to 
                 #capture on its own.
-                queryobj.setWhereIdent((mytok[i]))
+                newqueryobj.setWhereIdent((mytok[i]))
 #                queryclauses.getWhereIdent()
             
             elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "GROUP"):
                 if (str(mytok[i+2].ttype) == 'Token.Keyword' and str(mytok[i+2].value) == "BY"):
                     i=i+2
-                    
                     groupbyIdent = findIdentifierList(mytok[i+2])
                     if (groupbyIdent is None): # Not found identifier list, have one group by attribute
                         groupbyIdent = mytok[i+2]
                     
-                    queryobj.setGroupbyIdent(groupbyIdent)
+                    newqueryobj.setGroupbyIdent(groupbyIdent)
                 i+=1
             
             elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "ORDER"):
@@ -129,14 +134,14 @@ def myParser(mytok, mytoklen):
                     while (i <mytoklen and foundAttr is False):
                         (foundAttr, mytoklist,foundAggregate) = findIdentifierListWithKeywords(mytok[i],mytoklist)
                         if (foundAggregate):
-                            queryobj.setOrderbyContainsAggregate(foundAggregate)
+                            newqueryobj.setOrderbyContainsAggregate(foundAggregate)
 
                         if (foundAttr):
                             i-=2
                             break;
                         i+=1# From where loop at line 53
                     orderbyIdent = (sqlparse.sql.IdentifierList(mytoklist)).get_identifiers()
-                    queryobj.setOrderbyIdent(orderbyIdent)
+                    newqueryobj.setOrderbyIdent(orderbyIdent)
                 i+=1
             elif (str(mytok[i].ttype) == 'Token.Keyword' and str(mytok[i].value) == "HAVING"):
                 i = incrementIfWhitespace(mytok[i+1],i)
@@ -148,17 +153,17 @@ def myParser(mytok, mytoklen):
                         i-=2
                         break;
                     i+=1# Closing where loop at line 218    
-                queryobj.setHavingIdent(sqlparse.sql.IdentifierList(mytoklist))
+                newqueryobj.setHavingIdent(sqlparse.sql.IdentifierList(mytoklist))
 #                queryclauses.getHavingIdent()
             i+=1
     
     #Find new Identity
-    selectid = queryobj.getSelectIdent()
-    groupbyid = queryobj.getGroupbyIdent()
+    selectid = newqueryobj.getSelectIdent()
+    groupbyid = newqueryobj.getGroupbyIdent()
     newIdent = findNewSelectIdent(selectid, groupbyid)
-    queryobj.setNewSelectIdent(newIdent)
+    newqueryobj.setNewSelectIdent(newIdent)
     
-    return queryobj
+    return newqueryobj
 
 def incrementIfWhitespace(tok, idx):
     if ((tok).is_whitespace()):
@@ -291,33 +296,26 @@ def findNewSelectIdent(selectid, groupbyid):
 
 if __name__ == "__main__":
     
-#    userInput = ("SELECT MAX(e.id) "
+#    mainQuery = ("SELECT MAX(e.id) "
 #                 " FROM department d, employee e "
 #                 " WHERE e.dept_id = d.id "
 #                 " GROUP BY e.salary, e.dept_id "
 #                 " ORDER BY e.dept_id ")
     
-#    userInput = ("SELECT d.name, e.name, AVG(e.salary) "
+#    mainQuery = ("SELECT d.name, e.name, AVG(e.salary) "
 #                 " FROM employee e, department d, employee_skill es "
 #                 " WHERE e.dept_id = d.id and e.id = es.emp_id "
 #                 " GROUP BY d.name,es.skill,e.name ")
-    userInput = (" SELECT q1.sym, q1.days, q1.price - q2.price "
-                 " FROM quotes as q1, quotes as q2 "
-                 " WHERE q1.sym = q2.sym and q1.day = q2.day -1 ")
+#    mainQuery = (" SELECT q1.sym, q1.days, q1.price - q2.price "
+#                 " FROM quotes as q1, quotes as q2 "
+#                 " WHERE q1.sym = q2.sym and q1.day = q2.day -1 ")
     
-#    userInput = (" SELECT s.salary as sal, e.dept_id"
+#    mainQuery = (" SELECT s.salary as sal, e.dept_id"
 #                 " FROM department d, employee e "
 #                 " WHERE e.dept_id = d.id "
 #                 " GROUP BY e.id ")
 
-    print"------------------------------------------------------------------"
-    print userInput
-    print"------------------------------------------------------------------"
-    #Step 2: Tokenize the query give by the user
-    (mytok, mytoklen) = tokenizeUserInput (userInput)
-#    displayTokens(mytok, mytoklen)
-    #Step 4: Parse the user query using the tokens created
-    queryclauses = myParser(mytok, mytoklen)
-    
-    #Step 5: Display the clauses in the user query
-    queryclauses.dispay()   
+    mainQuery = " SELECT sym, MAX(price) FROM quotes GROUP BY sym "
+    groupAttr = " sym "
+    orderAttr = " sym "
+    (queryobj, groupobj, orderobj) = createUserInputObject(mainQuery, groupAttr, orderAttr)

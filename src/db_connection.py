@@ -35,7 +35,7 @@ class Db_connection:
         self.cursor = None
         self.conn = None
     
-    #Clearing the database
+    #private function to clear the database
     def reset_database(self,cursor):
         self.openConnection()
         
@@ -48,7 +48,7 @@ class Db_connection:
     def clear_database(self):
         self.reset_database(self.cursor)
 
-    # Use for select queries only so as to display results
+    # Use for select queries only i.e. use only to display results
     def make_pquery(self,query):
         if (query is not None):
             self.openConnection()
@@ -66,7 +66,7 @@ class Db_connection:
             return value
         return None
     
-    # Use for queries when the result need not be displayed to screen    
+    # Use for executing queries that will not return a result set back    
     def make_query(self,query):
         if (query is not None):
             self.openConnection()
@@ -75,7 +75,7 @@ class Db_connection:
     #        print query
             self.closeConnection(self.conn,self.cursor)
 
-    # Use when the first result of the query is needed.
+    # Use when only the first tuple of the result set is required.
     def onerow(self,query):
         if (query is not None):
             self.openConnection()
@@ -86,7 +86,7 @@ class Db_connection:
                 return result
         return None   
     
-    #Use when you want all the results of the query
+    #Use when the entire result of the query is needed.
     def allrows(self,query):
         if (query is not None):
             self.openConnection()
@@ -97,6 +97,7 @@ class Db_connection:
                 return result
         return None
     
+    #Used to view only the relations in the schema
     def list_tables(self):
         query = ("SELECT tablename"
              " FROM pg_tables"
@@ -104,6 +105,7 @@ class Db_connection:
         
         return self.allrows(query)
     
+    #Used to get the attributes of a given table
     def list_table_attributes(self, table_name):
         
         query = ("SELECT a.attname AS Column, t.typname AS Type"
@@ -116,6 +118,7 @@ class Db_connection:
         
         return self.allrows(query)
     
+    #Used to display the entire schema i.e all relations and attributes/attribute type of each relations
     def display_schema(self):
         print 'The Schema is:'  
         
@@ -128,7 +131,7 @@ class Db_connection:
             for attribute in attributes:
                 print "%s (%s)" %(attribute[0],attribute[1])
     
-    #Function returns the approximate cost of the query.
+    #Function returns the approximate cost of the query. The decimal point is ignored
     def total_cost(self, query):
         query = " EXPLAIN " + query
         query_plan = self.allrows(query)
@@ -145,8 +148,8 @@ class Db_connection:
             val = query_plan[0][0][idx_dot]
             if val.isdigit():
                 total_cost+= str(query_plan[0][0][idx_dot])
-            elif(val is "."):
-                break
+            elif(val is "."): 
+                break#Ignoring the decimal point if exists
             idx_dot+=1
                     
         return total_cost
@@ -156,11 +159,19 @@ def main():
     dbobj.clear_database()
 #    dbobj.display_schema()
 
-    query = " SELECT * FROM quotes "
-    cost = dbobj.total_cost(query)
-    print cost
+#    query = " SELECT * FROM quotes "
+#    cost = dbobj.total_cost(query)
+#    print cost
 
-#    totalCost= int(dbobj.total_cost(""" INSERT INTO finaloutputTable  SELECT * FROM temp10"""))
+    mainQuery = (" SELECT q1.sym "
+                 " FROM quotes as q1, quotes as q2 "
+                 " WHERE q1.sym = q2.sym and q1.days = q2.days -1 ")
+    
+    groupAttr =  " GROUP BY q1.sym "
+    orderAttr = " ORDER BY MAX(q1.price) - MIN(q2.price) "
+    query = mainQuery + groupAttr + orderAttr
+    print dbobj.total_cost(query)
+
 
     
 if __name__ == "__main__":
