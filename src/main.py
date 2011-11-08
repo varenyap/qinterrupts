@@ -63,8 +63,8 @@ if __name__ == "__main__":
     #Step 2: Tokenize the query give by the user
     (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
     print "----------------------------Original query input:-------------------------------------------------------"
-    print " %s\n %s\n %s" %(mainQuery,groupAttr, orderAttr)
-    print "Cost: %s"%db.total_cost(mainQuery)
+#    print " %s\n %s %s" %(mainQuery,groupAttr, orderAttr)
+#    print "Cost: %s"%db.total_cost(mainQuery)
     print "--------------------------------------------------------------------------------------------------------"    
     
     #Step 3: Display the tokens in the user query

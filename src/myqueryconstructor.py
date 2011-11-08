@@ -12,26 +12,27 @@ db = db_connection.Db_connection()
 #===============================================================================
 def findStringOrderbyAttributes(queryobj):
     orderbyAttr = ""
-    orderbyIdent = queryobj.getOrderbyIdent()
-    if (orderbyIdent is  not ""):
-        for oid in orderbyIdent:
-#            print oid
-            if (myhelper.isAggregate(oid)):
-#                print"agg"
-                orderbyAttr+= str(oid)
-            elif (myhelper.isOrderbyOperator(oid)):
-#                print "ops"
-                orderbyAttr = orderbyAttr.strip(", ")
-                orderbyAttr+= " " + myhelper.remAggregate(str(oid)) + ", "
-            elif(myhelper.isMathOperator(str(oid))):
-#                print "myops %s" %oid
-                orderbyAttr+=str(oid)
-            else:
-#                print "else"
-                orderbyAttr+= str(oid) + ", "
-
-    orderbyAttr = orderbyAttr.strip("_")
-    orderbyAttr = orderbyAttr.strip(", ")
+    if(queryobj is not None):
+        orderbyIdent = queryobj.getOrderbyIdent()
+        if (orderbyIdent is  not None):
+            for oid in orderbyIdent:
+#                print oid
+                if (myhelper.isAggregate(oid)):
+#                    print"agg"
+                    orderbyAttr+= str(oid)
+                elif (myhelper.isOrderbyOperator(oid)):
+#                    print "ops"
+                    orderbyAttr = orderbyAttr.strip(", ")
+                    orderbyAttr+= " " + myhelper.remAggregate(str(oid)) + ", "
+                elif(myhelper.isMathOperator(str(oid))):
+#                    print "myops %s" %oid
+                    orderbyAttr+=str(oid)
+                else:
+#                    print "else"
+                    orderbyAttr+= str(oid) + ", "
+    
+        orderbyAttr = orderbyAttr.strip("_")
+        orderbyAttr = orderbyAttr.strip(", ")
     
 #    print "orderbyAttr: %s" %orderbyAttr
     return orderbyAttr
@@ -85,14 +86,15 @@ def findStringSelectAttributes(queryobj):
 #===============================================================================
 def findStringGroupbyAttributes(queryobj):
     groupbyAttr = ""
-    groupbyIdent = queryobj.getGroupbyIdent()
-    if (groupbyIdent is  not ""):
-        if (myhelper.checkIfList(groupbyIdent)):
-            for gid in groupbyIdent:
-                groupbyAttr+= str(gid) + ", "
-        else:
-            groupbyAttr+= str(groupbyIdent)
-    groupbyAttr = groupbyAttr.strip(", ")
+    if (queryobj is not None):
+        groupbyIdent = queryobj.getGroupbyIdent()
+        if (groupbyIdent is not None):
+            if (myhelper.checkIfList(groupbyIdent)):
+                for gid in groupbyIdent:
+                    groupbyAttr+= str(gid) + ", "
+            else:
+                groupbyAttr+= str(groupbyIdent)
+        groupbyAttr = groupbyAttr.strip(", ")
     return groupbyAttr
 
 #def findOrderbyAlias(orderobj):
@@ -157,14 +159,18 @@ def displayGroupbyValues(query, results):
 def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
         
     selectClause = " SELECT DISTINCT "
-    selectClause+= findStringGroupbyAttributes(groupobj) 
-    selectClause+= ", "
+    selectClause+= findStringGroupbyAttributes(groupobj)
     
+    #because it is possible that there were no attributes in the additional group by clause 
+    if (selectClause is not " SELECT DISTINCT "):  
+        selectClause+= ", "
+    
+    #First, add attributes from the additional orderby and then add from the mainQuery
     orderbyString = findStringOrderbyAttributes(orderobj)
     orderbyList = orderbyString.split(",")
     orderbyClause = " ORDER BY " #+ orderbyString
     
-#    if (orderbyList is not ""):
+
     for item in orderbyList:
         if (myhelper.hasSelectOperator(item)):
             orderbyClause = orderbyClause.rstrip(", ")
@@ -202,7 +208,12 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     
     #Now, add in all the group by attributes in the main query with that of the user entered groupby
     orgGroupby = findStringGroupbyAttributes(queryobj)
-    groupbyClause = " GROUP BY " + findStringGroupbyAttributes(groupobj) + ", "
+    groupbyClause = " GROUP BY " + findStringGroupbyAttributes(groupobj)
+    
+    #because it is possible that there were no attributes in the additional group by clause
+    if (groupbyClause is not " GROUP BY "):
+        groupbyClause+= ", "
+        
     if (orgGroupby is not None):
         orgGroupbyList = orgGroupby.split(",")
         
@@ -221,7 +232,10 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
 #    print groupbyClause +  orderbyClause
     dropQuery = "drop table if exists tempDistinctAttributeValues;"
     
+    #Now, get all the distinct values
+    print query
     distinctValues = getGroupbyDistinctList(query, dropQuery)
+    
     # Contains only the attribute names/no keywords like DESC, yes to aggregates
     selectAttr = selectClause.lstrip(" SELECT DISTINCT ") 
     return (selectAttr, distinctValues)
@@ -316,28 +330,38 @@ def constructBigQuery(queryList, numRows, selectAttr,addBigWhere):
         writetofile.createScriptWithCosts(queryList, numRows, selectAttr, addBigWhere)
         
 
-#if __name__ == "__main__":
-#    mainQuery = (" SELECT q1.sym "
-#                 " FROM quotes as q1, quotes as q2 "
-#                 " WHERE q1.sym = q2.sym and q1.days = q2.days -1 ")
-#    groupAttr = " q1.sym "
-#    orderAttr = " MAX(q1.price) - MIN(q2.price) "
-#
-#    #Step 2: Tokenize the query give by the user
-#    (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
-#    print "----------------------------Original query input:-------------------------------------------------------"
-#    print " %s\n %s\n %s" %(mainQuery,groupAttr, orderAttr)
-#    print "Cost: %s"%db.total_cost(mainQuery)
-#    print "--------------------------------------------------------------------------------------------------------"    
-#    
-#    #Step 3: Display the tokens in the user query
-##    displayTokens(mytok,mytoklen)
+if __name__ == "__main__":
+
+    mainQuery = """ SELECT n_name, sum(l_extendedprice * (1 - l_discount)) as revenue
+                    FROM customer, orders, lineitem, supplier, nation, region
+                    WHERE c_custkey = o_custkey and l_orderkey = o_orderkey
+                        and l_suppkey = s_suppkey and c_nationkey = s_nationkey
+                        and s_nationkey = n_nationkey and n_regionkey = r_regionkey
+                        and r_name = 'EUROPE' and o_orderdate >= date '1993-01-01'
+                        and o_orderdate < date '1993-01-01' + interval '1' year
+                   GROUP BY n_name
+                   ORDER BY revenue DESC
+                   LIMIT ALL; """
+    
+    groupAttr = " n_name "
+    orderAttr = " revenue DESC "
+    
+    #Step 2: Tokenize the query give by the user
+    (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
+        
+    #Step 3: Display the tokens in the user query
+#    queryobj.printClauses()
+    
+
 #    
 #    #Step 4: Find the ordered, distinct group by values for given query plan.
-#    (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)   
+    (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)   
 #    
 #    #Step 5: construct the sub-selects for each distinct value in the group by/order by clauses 
-#    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
+#    (queryList, numRows, addBigWhere) = myqueryconstructor.constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
 #    
-#    #Step 6: Create the script finally!
-##    constructBigQuery(queryList, numRows, selectAttr, addBigWhere)
+#    #Step 6: Create the script finally!    
+#    #In the final query, need only the original select attributes.
+#    orgSelect = myqueryconstructor.findStringSelectAttributes(queryobj)
+#    orgSelect = myhelper.remAggregate(orgSelect)
+#    myqueryconstructor.constructBigQuery(queryList, numRows, orgSelect, addBigWhere)
