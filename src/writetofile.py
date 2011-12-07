@@ -18,7 +18,8 @@ def createScript (queryList, numRows, selectAttr, addBigWhere):
         FILE.write("from datetime import datetime\n")
         FILE.write('import db_connection\n\n')
         FILE.write('db = db_connection.Db_connection()\n\n')
-        FILE.write('db.clear_database() # reset the database on each run.\n\n')
+        #Ideally should reset, but definitely dont want to set up the TPC-H benchmark again!
+#        FILE.write('db.clear_database() # reset the database on each run.\n\n')
         
         # Drop if exists the temp tables we are about to create
         FILE.write('# If the temp tables we are about to create exist, drop them!\n')
@@ -69,7 +70,9 @@ def createScriptWithCosts (queryList, numRows, selectAttr, addBigWhere):
         FILE.write('import db_connection\n\n')
         FILE.write('totalCost = 0\n')
         FILE.write('db = db_connection.Db_connection()\n\n')
-        FILE.write('db.clear_database() # reset the database on each run.\n\n')
+        
+        #Ideally should reset, but definitely dont want to set up the TPC-H benchmark again!
+#        FILE.write('db.clear_database() # reset the database on each run.\n\n')
         
         # Drop if exists the temp tables we are about to create
         FILE.write('# If the temp tables we are about to create exist, drop them!\n')

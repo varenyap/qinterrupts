@@ -68,13 +68,17 @@ def findStringSelectAttributes(queryobj):
             for sid in selectIdent:
                 if (myhelper.isAggregate(sid)):
                     selectAttr+=str(sid)
+                    selectAttr= selectAttr.strip()
                 elif(myhelper.isMathOperator(sid)):
                     selectAttr = selectAttr.rstrip(", ")
                     selectAttr+=str(sid)
+                    selectAttr= selectAttr.strip()
                 else:
                     selectAttr+= str(sid) + ", "
+                    selectAttr= selectAttr.strip()
         else:
             selectAttr+= str(selectIdent)
+            selectAttr= selectAttr.strip()
     selectAttr = selectAttr.strip(", ")
     
     
@@ -132,16 +136,16 @@ def getGroupbyDistinctList(query, dropQuery):
 #        print "Resetting the database: "
 #        db.clear_database() # reset the database on each run.
 #        print "finished resetting"
-        db.make_query(dropQuery)
-        print query
+#        db.make_query(dropQuery)
+#        print query
         
-        db.make_query(query)
+#        db.make_query(query)
         
-        results = db.allrows("select * from tempDistinctAttributeValues")
+#        results = db.allrows("select * from tempDistinctAttributeValues")
         
+        results = db.allrows("select * from tempDistinctAttributeValues5")
         displayGroupbyValues(query, results)
-#        print "distinct results are: "
-#        print results
+        
         return results
     
     print " Error in executing distinct groupby queries\n"   
@@ -157,7 +161,6 @@ def displayGroupbyValues(query, results):
 
 #Creates the queries required to execute against the database
 def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
-        
     selectClause = " SELECT DISTINCT "
     selectClause+= findStringGroupbyAttributes(groupobj)
     
@@ -170,7 +173,6 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     orderbyList = orderbyString.split(",")
     orderbyClause = " ORDER BY " #+ orderbyString
     
-
     for item in orderbyList:
         if (myhelper.hasSelectOperator(item)):
             orderbyClause = orderbyClause.rstrip(", ")
@@ -182,12 +184,14 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
         item= item.rstrip()
         
         if (item not in selectClause):
-            if (myhelper.hasSelectOperator(item)):
-                selectClause = selectClause.rstrip(", ")
+#            if (myhelper.hasSelectOperator(item)):
+#                selectClause = selectClause.rstrip(", ")
+
             selectClause+= item + ", "
             idx = item.find(" ")
             if (idx is not -1):
                 item = item[:idx]
+    
     
     selectClause = selectClause.replace("ASC","")
     selectClause = selectClause.replace("DESC", "")
@@ -233,7 +237,7 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     dropQuery = "drop table if exists tempDistinctAttributeValues;"
     
     #Now, get all the distinct values
-    print query
+#    print query
     distinctValues = getGroupbyDistinctList(query, dropQuery)
     
     # Contains only the attribute names/no keywords like DESC, yes to aggregates
@@ -242,6 +246,7 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
 
 def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues):
     if (queryobj and selectAttr and distinctValues):
+        print "I Have valid input for construct subselects"
 
         #Temporary data structures required
         queryList = {}
@@ -332,7 +337,7 @@ def constructBigQuery(queryList, numRows, selectAttr,addBigWhere):
 
 if __name__ == "__main__":
 
-    mainQuery = """ SELECT n_name, sum(l_extendedprice * (1 - l_discount)) as revenue
+    mainQuery = """ SELECT n_name, sum(l_extendedprice * (1 - l_discount))
                     FROM customer, orders, lineitem, supplier, nation, region
                     WHERE c_custkey = o_custkey and l_orderkey = o_orderkey
                         and l_suppkey = s_suppkey and c_nationkey = s_nationkey
@@ -340,11 +345,11 @@ if __name__ == "__main__":
                         and r_name = 'EUROPE' and o_orderdate >= date '1993-01-01'
                         and o_orderdate < date '1993-01-01' + interval '1' year
                    GROUP BY n_name
-                   ORDER BY revenue DESC
+                   ORDER BY sum(l_extendedprice * (1 - l_discount)) DESC
                    LIMIT ALL; """
     
     groupAttr = " n_name "
-    orderAttr = " revenue DESC "
+    orderAttr = " sum(l_extendedprice * (1 - l_discount)) DESC "
     
     #Step 2: Tokenize the query give by the user
     (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
@@ -353,15 +358,14 @@ if __name__ == "__main__":
 #    queryobj.printClauses()
     
 
+    #Step 4: Find the ordered, distinct group by values for given query plan.
+    (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)
+    
+    #Step 5: construct the sub-selects for each distinct value in the group by/order by clauses 
+    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
 #    
-#    #Step 4: Find the ordered, distinct group by values for given query plan.
-    (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)   
-#    
-#    #Step 5: construct the sub-selects for each distinct value in the group by/order by clauses 
-#    (queryList, numRows, addBigWhere) = myqueryconstructor.constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
-#    
-#    #Step 6: Create the script finally!    
-#    #In the final query, need only the original select attributes.
-#    orgSelect = myqueryconstructor.findStringSelectAttributes(queryobj)
-#    orgSelect = myhelper.remAggregate(orgSelect)
-#    myqueryconstructor.constructBigQuery(queryList, numRows, orgSelect, addBigWhere)
+    #Step 6: Create the script finally!    
+    #In the final query, need only the original select attributes.
+    orgSelect = findStringSelectAttributes(queryobj)
+    orgSelect = myhelper.remAggregate(orgSelect)
+    constructBigQuery(queryList, numRows, orgSelect, addBigWhere)
