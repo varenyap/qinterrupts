@@ -36,16 +36,6 @@ if __name__ == "__main__":
     #Step 1: Get query from user
 #    (mainQuery,groupAttr,orderAttr) = getUserInput()
     
-#    mainQuery = (" SELECT q1.sym "
-#                 " FROM quotes as q1, quotes as q2 "
-#                 " WHERE q1.sym = q2.sym and q1.days = q2.days -1 ")
-#    groupAttr = " q1.sym "
-#    orderAttr = " MAX(q1.price) - MIN(q2.price) "
-    
-#    mainQuery = " SELECT sym, MAX(price) FROM quotes GROUP BY sym "
-#    groupAttr = " sym "
-#    orderAttr = " sym "
-
     mainQuery = """ SELECT n_name, sum(l_extendedprice * (1 - l_discount)) as revenue
                     FROM customer, orders, lineitem, supplier, nation, region
                     WHERE c_custkey = o_custkey and l_orderkey = o_orderkey

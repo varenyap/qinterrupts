@@ -13,7 +13,7 @@ basepath = os.path.dirname(__file__)
 
 #init_script_path = os.path.abspath(os.path.join(basepath, "..", "..", "qinterrupts/src/allscripts.sql"))
 
-init_script_path = os.path.abspath(os.path.join(basepath, "..", "..", "qinterrupts/src/quotesScript.sql"))
+#init_script_path = os.path.abspath(os.path.join(basepath, "..", "..", "qinterrupts/src/quotesScript.sql"))
 
 #db_name = "tester"
 #db_user = "varenyaprasad"
