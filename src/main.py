@@ -6,6 +6,13 @@ import myqueryconstructor
 import mycostoptimizer
 import myinterrupthandler
 
+import threading
+import thread
+import time
+from sys import stdin
+import select
+import sys
+
 db = db_connection.Db_connection()
 
 def getUserInput():
@@ -68,9 +75,7 @@ if __name__ == "__main__":
         print "Interrupts have been enabled for the input query"
 #    #Step 4: Find the ordered, distinct group by values for given query plan.
         distinctValues = myqueryconstructor.findDistinctGroupbyValues(selectDistinctQuery)
-    
-        myinterrupthandler.interruptHandler(enableInterrupts)
-        
+        myinterrupthandler.interruptHandler(queryobj, groupobj, orderobj, selectAttr, distinctValues)
     else:
         print "Executing main query"
         db.make_pquery(mainQuery)
