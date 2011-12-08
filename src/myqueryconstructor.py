@@ -144,23 +144,13 @@ def getGroupbyDistinctList(query, dropQuery):
 #        results = db.allrows("select * from tempDistinctAttributeValues")
         
         results = db.allrows("select * from tempDistinctAttributeValues5")
-        displayGroupbyValues(query, results)
-        
         return results
     
     print " Error in executing distinct groupby queries\n"   
     return None
 
-def displayGroupbyValues(query, results):
-    print "\n---------------------Displaying distinct GroupbyValues:--------------------------------"
-    print query
-#    for rs in results:
-#        print rs
-    print "Cost: %s"%db.total_cost(query)
-    print "----------------------------------------------------------------------------------------"
-
-#Creates the queries required to execute against the database
-def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
+# Creates the SELECT DISTINCT query to find ordered group by attribute values
+def createSelectDistinctQuery(queryobj,groupobj,orderobj):
     selectClause = " SELECT DISTINCT "
     selectClause+= findStringGroupbyAttributes(groupobj)
     
@@ -229,20 +219,106 @@ def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
     
     #Find unique tables in the original from query.
     orgFromAttr = findStringFromAttributes(queryobj)
-    orgFromAttr = findStringFromAttributes(queryobj)
     
     fromClause = " FROM " + orgFromAttr
     query = selectClause + selectIntoClause + fromClause + groupbyClause + orderbyClause
-#    print groupbyClause +  orderbyClause
-    dropQuery = "drop table if exists tempDistinctAttributeValues;"
-    
-    #Now, get all the distinct values
-#    print query
-    distinctValues = getGroupbyDistinctList(query, dropQuery)
-    
+        
     # Contains only the attribute names/no keywords like DESC, yes to aggregates
     selectAttr = selectClause.lstrip(" SELECT DISTINCT ") 
-    return (selectAttr, distinctValues)
+    return (selectAttr, query)
+    
+def findDistinctGroupbyValues(query):
+    if (query):
+        dropQuery = "drop table if exists tempDistinctAttributeValues;"
+        #Now, get all the distinct values
+        distinctValues = getGroupbyDistinctList(query, dropQuery)
+        return distinctValues
+    
+    print "Error in finding the distinct ordered values"
+    
+
+#def findDistinctGroupbyValues(queryobj,groupobj,orderobj):
+#    selectClause = " SELECT DISTINCT "
+#    selectClause+= findStringGroupbyAttributes(groupobj)
+#    
+#    #because it is possible that there were no attributes in the additional group by clause 
+#    if (selectClause is not " SELECT DISTINCT "):  
+#        selectClause+= ", "
+#    
+#    #First, add attributes from the additional orderby and then add from the mainQuery
+#    orderbyString = findStringOrderbyAttributes(orderobj)
+#    orderbyList = orderbyString.split(",")
+#    orderbyClause = " ORDER BY " #+ orderbyString
+#    
+#    for item in orderbyList:
+#        if (myhelper.hasSelectOperator(item)):
+#            orderbyClause = orderbyClause.rstrip(", ")
+#        if ("(" in item):
+#            orderbyClause = orderbyClause.rstrip(", ")  
+#        orderbyClause+= " " + item + ", "
+#        item = item.replace("ASC","")
+#        item = item.replace("DESC","")
+#        item= item.rstrip()
+#        
+#        if (item not in selectClause):
+##            if (myhelper.hasSelectOperator(item)):
+##                selectClause = selectClause.rstrip(", ")
+#
+#            selectClause+= item + ", "
+#            idx = item.find(" ")
+#            if (idx is not -1):
+#                item = item[:idx]
+#    
+#    
+#    selectClause = selectClause.replace("ASC","")
+#    selectClause = selectClause.replace("DESC", "")
+#    #selectClause = selectClause.rstrip(", ")
+#    orderbyClause = orderbyClause.rstrip(", ")
+#    
+#    #Now add in all the attributes that are in the original select -> like aggregates
+#    orgSelect = findStringSelectAttributes(queryobj)
+#
+#    orgSelectList = orgSelect.split(",")
+#    for item in orgSelectList:
+#        
+#        if item not in selectClause:
+#            selectClause+=item + ", "
+#    
+#    selectClause = selectClause.rstrip(", ")
+#    selectIntoClause = " INTO tempDistinctAttributeValues "
+#    
+#    #Now, add in all the group by attributes in the main query with that of the user entered groupby
+#    orgGroupby = findStringGroupbyAttributes(queryobj)
+#    groupbyClause = " GROUP BY " + findStringGroupbyAttributes(groupobj)
+#    
+#    #because it is possible that there were no attributes in the additional group by clause
+#    if (groupbyClause is not " GROUP BY "):
+#        groupbyClause+= ", "
+#        
+#    if (orgGroupby is not None):
+#        orgGroupbyList = orgGroupby.split(",")
+#        
+#        for item in orgGroupbyList:
+#            if (str(item) not in groupbyClause):
+#                groupbyClause+= str(item) + ", "
+#    
+#    groupbyClause = groupbyClause.rstrip(", ")    
+#    
+#    #Find unique tables in the original from query.
+#    orgFromAttr = findStringFromAttributes(queryobj)
+#    
+#    fromClause = " FROM " + orgFromAttr
+#    query = selectClause + selectIntoClause + fromClause + groupbyClause + orderbyClause
+##    print groupbyClause +  orderbyClause
+#    dropQuery = "drop table if exists tempDistinctAttributeValues;"
+#    
+#    #Now, get all the distinct values
+##    print query
+#    distinctValues = getGroupbyDistinctList(query, dropQuery)
+#    
+#    # Contains only the attribute names/no keywords like DESC, yes to aggregates
+#    selectAttr = selectClause.lstrip(" SELECT DISTINCT ") 
+#    return (selectAttr, distinctValues)
 
 def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues):
     if (queryobj and selectAttr and distinctValues):
@@ -352,20 +428,20 @@ if __name__ == "__main__":
     orderAttr = " sum(l_extendedprice * (1 - l_discount)) DESC "
     
     #Step 2: Tokenize the query give by the user
-    (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)
-        
+    (queryobj,groupobj,orderobj) = myparser.createUserInputObject(mainQuery, groupAttr, orderAttr)    
+    
     #Step 3: Display the tokens in the user query
 #    queryobj.printClauses()
     
 
     #Step 4: Find the ordered, distinct group by values for given query plan.
-    (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)
+#    (selectAttr, distinctValues) = findDistinctGroupbyValues(queryobj,groupobj,orderobj)
     
     #Step 5: construct the sub-selects for each distinct value in the group by/order by clauses 
-    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
+#    (queryList, numRows, addBigWhere) = constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues)
 #    
     #Step 6: Create the script finally!    
     #In the final query, need only the original select attributes.
-    orgSelect = findStringSelectAttributes(queryobj)
-    orgSelect = myhelper.remAggregate(orgSelect)
-    constructBigQuery(queryList, numRows, orgSelect, addBigWhere)
+#    orgSelect = findStringSelectAttributes(queryobj)
+#    orgSelect = myhelper.remAggregate(orgSelect)
+#    constructBigQuery(queryList, numRows, orgSelect, addBigWhere)
