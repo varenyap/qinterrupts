@@ -31,8 +31,6 @@ def interruptHandler(queryobj, groupobj, orderobj, selectAttr, distinctValues):
 def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValues):
     if (queryobj and selectAttr and distinctValues):
         
-        print "I Have valid input for construct subselects"
-        
         #Temporary data structures required
         queryList = {}
         selectList = {}
@@ -106,6 +104,8 @@ def constructSubSelects (queryobj, groupobj, orderobj, selectAttr, distinctValue
             db.make_pquery(queryList[iterations])
 #            print queryList[iterations]
             iterations += 1
+        
+#        print "Done with typles"
 
 #        return (queryList, numRows, addBigWhere)
     print "Error in creating subqueries"

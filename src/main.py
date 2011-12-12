@@ -15,6 +15,15 @@ import sys
 
 db = db_connection.Db_connection()
 
+def run_thread (threadname, count, sleeptime):
+    print "I am thread"
+    for i in range (1, 4 + 1):
+        print "count = thread1:%s" % i
+        time.sleep(1)
+    thread.interrupt_main()
+    print "I return from thread"
+    return False #as in thread over
+
 def getUserInput():
     query = ""
     entry = raw_input("Enter query, 'done' on its own line to quit: \n")
@@ -75,10 +84,66 @@ if __name__ == "__main__":
         print "Interrupts have been enabled for the input query"
 #    #Step 4: Find the ordered, distinct group by values for given query plan.
         distinctValues = myqueryconstructor.findDistinctGroupbyValues(selectDistinctQuery)
-        myinterrupthandler.interruptHandler(queryobj, groupobj, orderobj, selectAttr, distinctValues)
+#        myinterrupthandler.interruptHandler(queryobj, groupobj, orderobj, selectAttr, distinctValues)
+
+        try:
+            thread.start_new_thread(myinterrupthandler.interruptHandler,(queryobj, groupobj, orderobj, selectAttr, distinctValues))
+#            thread.start_new_thread(run_thread, ("Thread1", 5, 2))
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            print"excepthook"
+            sys.excepthook(*sys.exc_info())
+            
+        running = True
+        try:
+            while(running):
+#                timeout = 5
+                (inputready,outputready,exceptready) = select.select([stdin], [], [])
+                if (inputready):
+                    input = stdin.readline()
+                    
+                    if (input == "quit\n"):
+                        running = False
+                        print "You have exited the program...BYE! \n"
+                        break
+                else:
+                    running = False
+        except:
+            print"Threat 1 exited"
     else:
         print "Executing main query"
         db.make_pquery(mainQuery)
+    
+#    try:
+#        thread.start_new_thread(run_thread, ("Thread1", 5, 1))
+#    except (KeyboardInterrupt, SystemExit):
+#        raise
+#    except:
+#        sys.excepthook(*sys.exc_info())
+#    
+#    running = True
+#    try:
+#        while(running):
+#            timeout = 5
+#            (inputready,outputready,exceptready) = select.select([stdin], [], [],timeout)
+#            if (inputready):
+#                input = stdin.readline()
+#                print input
+#                if (input == "quit\n"):
+#                    running = False
+#                    break
+#            else:
+#                running = False
+#    except:
+#        print "Thread1 exited...."
+#    
+    
+    
+    
+    
+    
+    
 
 
 #    #Step 5: construct the sub-selects for each distinct value in the group by/order by clauses 
